@@ -1,0 +1,410 @@
+<!-- Le decimos al navegador: "este documento es HTML5" (la versión moderna de HTML) -->
+<!DOCTYPE html>
+<!-- Empieza la página. lang="es" avisa que el idioma es español (ayuda a los lectores de pantalla y al traductor) -->
+<html lang="es">
+<head>
+  <!-- Codificación de caracteres: permite que á, é, í, ó, ú, ñ, ¡ y ¿ se vean bien -->
+  <meta charset="UTF-8">
+  <!-- Le dice al teléfono que use su ancho real (sin esto todo se ve chiquito).
+       "viewport-fit=cover" deja que la app use toda la pantalla, incluso junto al "notch" del iPhone -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <!-- Título de la pestaña del navegador (app.js lo cambia según la pantalla) -->
+  <title>Guitarify</title>
+  <!-- Descripción corta de la app (la usan los buscadores y el instalador de apps) -->
+  <meta name="description" content="Afinador, reconocedor de notas y acordes, y lector de acordes de canciones para guitarra.">
+
+  <!-- Avisamos que la app es de tema oscuro, así el navegador pinta oscuras sus propias partes (barras de desplazamiento, etc.) -->
+  <meta name="color-scheme" content="dark">
+  <!-- Color de la barra del navegador en Android. Tiene que ser el mismo que --color-fondo de estilos.css
+       (aquí no se pueden usar variables CSS, por eso va el código del color escrito directo) -->
+  <meta name="theme-color" content="#111010">
+  <!-- Estas 3 líneas son para cuando se instala en iPhone: pantalla completa, barra de estado transparente y nombre corto -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Guitarify">
+
+  <!-- El "carnet de identidad" de la app para poder instalarla (nombre, colores, íconos) -->
+  <link rel="manifest" href="./manifest.json">
+  <!-- El ícono de la pestaña: nuestra uñeta con rayo -->
+  <link rel="icon" href="./assets/iconos/favicon.svg" type="image/svg+xml">
+  <!-- El ícono que usa el iPhone al "Agregar a pantalla de inicio" (debe ser PNG) -->
+  <link rel="apple-touch-icon" href="./assets/iconos/icono-180.png">
+  <!-- Conectamos el archivo de estilos (colores, tipografía, tamaños, etc.) -->
+  <link rel="stylesheet" href="./css/estilos.css">
+</head>
+<!-- Aquí empieza todo lo que SÍ se ve en la pantalla -->
+<body>
+
+  <!--
+    ÍCONOS (todos dibujados por nosotros, diseño original)
+    -------------------------------------------------------
+    Este <svg> está escondido: es como una "caja de moldes". Cada <symbol> es
+    un ícono con un nombre (id). Después, en cualquier parte de la página,
+    escribimos <use href="#nombre"> y el ícono aparece ahí, sin tener que
+    dibujarlo de nuevo. "currentColor" significa "usa el color del texto",
+    así el mismo ícono puede ser dorado en un lugar y blanco en otro.
+  -->
+  <svg class="sprite" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <!-- Rayo -->
+    <symbol id="icono-rayo" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M13.5 1.5 4 13.5h7l-1.5 9 10.5-13h-7z"/>
+    </symbol>
+    <!-- Rayo alto y angosto: hace de letra "I" en el logo (por eso tiene la proporción de una letra) -->
+    <symbol id="icono-rayo-letra" viewBox="0 0 14 28">
+      <path fill="currentColor" d="M9.5 0 1 16h5.5L4 28l9.5-17.5H8L10.5 0z"/>
+    </symbol>
+    <!-- Estrella de 5 puntas -->
+    <symbol id="icono-estrella" viewBox="0 0 24 24">
+      <path fill="currentColor" d="m12 2 2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.2l-6.2 3.7 1.6-7L2 9.2l7.1-.6z"/>
+    </symbol>
+    <!-- Medidor con aguja (para el botón del Afinador) -->
+    <symbol id="icono-afinador" viewBox="0 0 24 24">
+      <path d="M3.5 17a8.5 8.5 0 0 1 17 0" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="m12 17 4.5-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="12" cy="17" r="2" fill="currentColor"/>
+    </symbol>
+    <!-- Dos corcheas unidas (para el botón de Notas y acordes) -->
+    <symbol id="icono-notas" viewBox="0 0 24 24">
+      <path fill="currentColor" d="M9 5.5 20 3v12.2a3 3 0 1 1-2-2.83V7.6l-7 1.6v8a3 3 0 1 1-2-2.83z"/>
+    </symbol>
+    <!-- Casete (para el botón de Canciones) -->
+    <symbol id="icono-casete" viewBox="0 0 24 24">
+      <rect x="2.5" y="5" width="19" height="14" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="8.5" cy="11" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <circle cx="15.5" cy="11" r="2.2" fill="none" stroke="currentColor" stroke-width="2"/>
+      <path d="m7 19 1.5-3.5h7L17 19" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+    </symbol>
+    <!-- Flecha hacia la izquierda (botón Regresar) -->
+    <symbol id="icono-flecha" viewBox="0 0 24 24">
+      <path d="m15 5-7 7 7 7" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <!-- Flechita hacia la derecha (indica "entrar" en los botones del menú) -->
+    <symbol id="icono-entrar" viewBox="0 0 24 24">
+      <path d="m9 5 7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <!-- Micrófono -->
+    <symbol id="icono-microfono" viewBox="0 0 24 24">
+      <rect x="9" y="2.5" width="6" height="11" rx="3" fill="currentColor"/>
+      <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21m-3.5 0h7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    </symbol>
+    <!-- Carpeta con flecha hacia arriba (elegir un archivo) -->
+    <symbol id="icono-carpeta" viewBox="0 0 24 24">
+      <path d="M3 6.5A1.5 1.5 0 0 1 4.5 5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M12 17v-6m-2.5 2.5L12 11l2.5 2.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+  </svg>
+
+  <!--
+    CÓMO FUNCIONAN LAS "PANTALLAS"
+    -------------------------------
+    Abajo hay 4 bloques <section class="pantalla">. Los 4 existen siempre en
+    la página, pero los que tienen el atributo "hidden" (oculto) no se ven.
+    El archivo js/app.js es quien decide, cuando tocas un botón, a cuál
+    pantalla le quita "hidden" y a cuáles se lo pone.
+    A esto se le llama "SPA" (Single Page Application = una sola página que
+    simula tener varias pantallas).
+  -->
+
+  <!-- <main> envuelve el contenido principal de la app. La clase "app" le da un ancho máximo y la centra -->
+  <main class="app">
+
+    <!-- ===================== PANTALLA: INICIO ===================== -->
+    <!-- id="pantalla-inicio" es el nombre único que usa app.js para encontrar este bloque.
+         Esta es la única pantalla SIN "hidden", por eso es la que se ve al abrir la app -->
+    <section id="pantalla-inicio" class="pantalla pantalla-inicio">
+
+      <!-- El "cartel" del nombre: imita el frente de un amplificador (tela de parrilla + tornillos) -->
+      <header class="cartel panel-rejilla con-tornillos">
+        <!-- Tres estrellas decorativas. aria-hidden="true" = los lectores de pantalla las ignoran (son solo adorno) -->
+        <p class="cartel-estrellas" aria-hidden="true">
+          <svg class="icono"><use href="#icono-estrella"/></svg>
+          <svg class="icono icono-grande"><use href="#icono-estrella"/></svg>
+          <svg class="icono"><use href="#icono-estrella"/></svg>
+        </p>
+        <!-- El título. tabindex="-1" permite que app.js le pase el "foco" (útil para lectores de pantalla).
+             aria-label dice cómo se lee en voz alta, porque visualmente la segunda "I" es un rayo -->
+        <h1 class="logo" tabindex="-1" aria-label="Guitarify">
+          <!-- Lo que se ve: GUITAR + rayo (haciendo de "I") + FY -->
+          <span aria-hidden="true">GUITAR<svg class="logo-rayo"><use href="#icono-rayo-letra"/></svg>FY</span>
+        </h1>
+        <!-- Frase corta debajo del nombre, estilo póster de concierto -->
+        <p class="lema">Afina · Escucha · Toca</p>
+      </header>
+
+      <!-- Seis líneas decorativas que imitan las cuerdas: de la más fina (arriba) a la más gruesa (abajo), como en una tablatura -->
+      <div class="cuerdas-deco" aria-hidden="true">
+        <span></span><span></span><span></span><span></span><span></span><span></span>
+      </div>
+
+      <!-- <nav> agrupa los botones de navegación. aria-label le da un nombre para lectores de pantalla -->
+      <nav class="menu" aria-label="Menú principal">
+        <!-- type="button" aclara que es un botón normal (no envía formularios).
+             data-ir="afinador" es un atributo inventado por nosotros: le dice a app.js a qué pantalla ir -->
+        <button type="button" class="boton-menu" data-ir="afinador">
+          <!-- Uñeta roja con el ícono adentro (solo decorativa) -->
+          <span class="pua menu-pua" aria-hidden="true"><svg class="icono"><use href="#icono-afinador"/></svg></span>
+          <!-- Título y descripción del botón -->
+          <span class="menu-textos">
+            <span class="menu-titulo">Afinador</span>
+            <span class="menu-detalle">Afina cada cuerda con el medidor de aguja</span>
+          </span>
+          <!-- Flechita a la derecha -->
+          <svg class="icono menu-entrar" aria-hidden="true"><use href="#icono-entrar"/></svg>
+        </button>
+
+        <button type="button" class="boton-menu" data-ir="notas">
+          <span class="pua menu-pua" aria-hidden="true"><svg class="icono"><use href="#icono-notas"/></svg></span>
+          <span class="menu-textos">
+            <span class="menu-titulo">Notas y acordes</span>
+            <span class="menu-detalle">Descubre qué nota o acorde estás tocando</span>
+          </span>
+          <svg class="icono menu-entrar" aria-hidden="true"><use href="#icono-entrar"/></svg>
+        </button>
+
+        <button type="button" class="boton-menu" data-ir="canciones">
+          <span class="pua menu-pua" aria-hidden="true"><svg class="icono"><use href="#icono-casete"/></svg></span>
+          <span class="menu-textos">
+            <span class="menu-titulo">Canciones</span>
+            <span class="menu-detalle">Saca los acordes de una canción, en orden</span>
+          </span>
+          <svg class="icono menu-entrar" aria-hidden="true"><use href="#icono-entrar"/></svg>
+        </button>
+      </nav>
+
+      <!-- Pie de página: recuerda en qué etapa del proyecto estamos -->
+      <p class="pie">Versión de prueba · Entrega 2</p>
+    </section>
+
+    <!-- ===================== PANTALLA: AFINADOR ===================== -->
+    <!-- "hidden" = esta pantalla arranca oculta hasta que app.js la muestre -->
+    <section id="pantalla-afinador" class="pantalla" hidden>
+
+      <!-- Barra de arriba: botón de regresar + título. "sticky" en el CSS la deja pegada arriba al hacer scroll -->
+      <header class="barra-superior">
+        <!-- data-regresar es otro atributo inventado: le dice a app.js "vuelve al Inicio".
+             Como el botón solo tiene un ícono, aria-label le da un nombre que se lee en voz alta -->
+        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio">
+          <svg class="icono"><use href="#icono-flecha"/></svg>
+        </button>
+        <!-- Título de la pantalla -->
+        <h1 class="titulo-pantalla" tabindex="-1">Afinador</h1>
+      </header>
+
+      <!-- Panel metálico que contiene el medidor, como el frente de un amplificador -->
+      <div class="panel-amp con-tornillos">
+        <!-- Sello rojo "EJEMPLO": se ve solo con el micrófono apagado, porque ahí la
+             aguja y la lectura muestran datos de ejemplo. js/afinador.js lo esconde al escuchar -->
+        <span id="afinador-sello" class="sello-ejemplo">Ejemplo</span>
+
+        <!--
+          MEDIDOR DE AGUJA (VU meter)
+          Está dibujado con SVG (dibujo hecho con código, se ve nítido en cualquier tamaño).
+          viewBox="0 0 300 190" = usamos una "hoja cuadriculada" de 300 x 190 unidades para ubicar las cosas.
+          El punto sobre el que gira la aguja (el eje) está en x=150, y=170.
+          role="img" + aria-labelledby = para lectores de pantalla, todo esto es UNA imagen con ese título.
+        -->
+        <svg class="vu" viewBox="0 0 300 190" role="img" aria-labelledby="vu-titulo">
+          <title id="vu-titulo">Medidor de afinación</title>
+          <!-- <defs> guarda "pinturas" (degradados) que se usan más abajo -->
+          <defs>
+            <!-- Degradado metálico del marco (los colores los pone el CSS con las clases de cada <stop>) -->
+            <linearGradient id="vu-degradado-marco" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" class="vu-metal-claro"/>
+              <stop offset="0.5" class="vu-metal-oscuro"/>
+              <stop offset="1" class="vu-metal-claro"/>
+            </linearGradient>
+            <!-- Degradado crema de la cara del medidor (más clara arriba, como iluminada por dentro) -->
+            <linearGradient id="vu-degradado-cara" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" class="vu-crema"/>
+              <stop offset="1" class="vu-crema-sombra"/>
+            </linearGradient>
+            <!-- Degradado redondo para el tornillo central (eje de la aguja) -->
+            <radialGradient id="vu-degradado-eje" cx="0.35" cy="0.3" r="0.8">
+              <stop offset="0" class="vu-metal-claro"/>
+              <stop offset="1" class="vu-metal-oscuro"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Marco metálico (rectángulo de esquinas redondeadas) -->
+          <rect x="2" y="2" width="296" height="186" rx="14" fill="url(#vu-degradado-marco)"/>
+          <!-- Cara crema del medidor, un poco más chica que el marco -->
+          <rect x="12" y="12" width="276" height="166" rx="7" fill="url(#vu-degradado-cara)"/>
+
+          <!-- Grupo vacío: js/medidor.js dibuja aquí adentro las rayitas y los números de la escala -->
+          <g id="vu-escala"></g>
+
+          <!-- Símbolos musicales: ♭ (bemol = nota baja) a la izquierda, ♯ (sostenido = nota alta) a la derecha -->
+          <text class="vu-simbolo" x="42" y="164">♭</text>
+          <text class="vu-simbolo" x="258" y="164">♯</text>
+          <!-- Palabra "CENTS": la unidad de la escala (100 cents = 1 semitono) -->
+          <text class="vu-leyenda" x="150" y="138">CENTS</text>
+
+          <!-- La aguja. js/medidor.js la hace girar cambiando la variable CSS "--angulo" -->
+          <g id="vu-aguja" class="vu-aguja">
+            <line x1="150" y1="170" x2="150" y2="30"/>
+          </g>
+          <!-- Tornillo central, dibujado DESPUÉS de la aguja para que quede encima y tape su base -->
+          <circle class="vu-eje" cx="150" cy="170" r="11" fill="url(#vu-degradado-eje)"/>
+          <!-- Reflejo del vidrio: una forma blanca casi transparente arriba -->
+          <path class="vu-reflejo" d="M18 20h264v34c-60 16-204 16-264 0z"/>
+        </svg>
+
+        <!-- Luz piloto (como la lucecita de un amplificador): se enciende cuando la cuerda está afinada -->
+        <p id="lampara-afinado" class="lampara">
+          <span class="lampara-foco" aria-hidden="true"></span>
+          Afinada
+        </p>
+
+        <!-- Barra de "Señal" (la prueba de micrófono): se llena según el volumen que escucha.
+             Sirve para saber que el micrófono funciona y si la guitarra suena lo bastante fuerte -->
+        <div class="nivel" aria-hidden="true">
+          <span class="nivel-etiqueta">Señal</span>
+          <span class="nivel-barra"><span id="afinador-nivel" class="nivel-relleno"></span></span>
+        </div>
+      </div>
+
+      <!-- Lectura: qué nota se está afinando y qué tan cerca está -->
+      <!-- aria-live="polite" = cuando esto cambie, el lector de pantalla lo lee en voz alta (sin interrumpir) -->
+      <div class="lectura" aria-live="polite">
+        <!-- La nota en letra gigante (js/afinador.js cambia este texto) -->
+        <p id="afinador-nota" class="nota-grande">Mi</p>
+        <!-- Detalle: número de cuerda, nombre en inglés y frecuencia -->
+        <p id="afinador-detalle" class="nota-detalle">6ª cuerda · E2 · 82,41 Hz</p>
+        <!-- Estado: cuántos cents está desafinada y qué hacer con la clavija -->
+        <p id="afinador-estado" class="estado-afinacion">−12 cents · Baja: aprieta un poco la clavija</p>
+      </div>
+
+      <!-- Selector de cuerdas -->
+      <section class="bloque" aria-labelledby="titulo-cuerdas">
+        <h2 id="titulo-cuerdas" class="subtitulo">Elige una cuerda</h2>
+        <!-- Contenedor vacío: js/afinador.js crea aquí las 6 uñetas (Mi La Re Sol Si Mi) a partir de una lista de datos -->
+        <div id="cuerdas" class="cuerdas"></div>
+        <!-- Explica el modo: automático (la app reconoce la cuerda sola) o manual (la eliges tú) -->
+        <p id="afinador-modo" class="modo">Con el micrófono encendido, la app reconoce sola qué cuerda tocas.</p>
+        <!-- Aparece solo en modo manual, para volver al automático -->
+        <button type="button" id="afinador-auto" class="enlace" hidden>Volver al modo automático</button>
+      </section>
+
+      <!-- Botón para encender/apagar el micrófono. aria-pressed dice si está "apretado" (encendido) -->
+      <button type="button" id="afinador-mic" class="boton-accion" aria-pressed="false">
+        <svg class="icono"><use href="#icono-microfono"/></svg>
+        <span class="boton-texto">Encender micrófono</span>
+      </button>
+      <!-- Texto de ayuda: js/afinador.js lo cambia según el micrófono esté encendido o no -->
+      <p id="afinador-ayuda" class="texto-ayuda">La aguja y la lectura son de ejemplo. Enciende el micrófono para afinar de verdad.</p>
+    </section>
+
+    <!-- ===================== PANTALLA: NOTAS Y ACORDES ===================== -->
+    <section id="pantalla-notas" class="pantalla" hidden>
+      <header class="barra-superior">
+        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio">
+          <svg class="icono"><use href="#icono-flecha"/></svg>
+        </button>
+        <h1 class="titulo-pantalla" tabindex="-1">Notas y acordes</h1>
+      </header>
+
+      <!-- Panel tipo "escenario" con luz de reflector, donde aparece lo que se detecta.
+           js/notas.js cambia estos textos cada vez que reconoce algo nuevo -->
+      <div class="panel-amp panel-escenario con-tornillos">
+        <!-- aria-live: el lector de pantalla anuncia cada nota o acorde nuevo -->
+        <div aria-live="polite">
+          <!-- Qué tipo de cosa se detectó: una nota suelta o un acorde -->
+          <p id="notas-tipo" class="tipo-deteccion">Listo</p>
+          <!-- El nombre en letra gigante -->
+          <p id="notas-nombre" class="nota-grande">♪</p>
+          <!-- Detalle: nombre completo, cifrado americano y frecuencia -->
+          <p id="notas-detalle" class="nota-detalle">Toca «Empezar a escuchar» y luego una nota o un acorde.</p>
+          <!-- Las notas que forman el acorde (vacía si es una nota sola) -->
+          <ul id="notas-del-acorde" class="notas-del-acorde" aria-label="Notas del acorde"></ul>
+        </div>
+        <!-- Barra de "Señal": muestra que el micrófono está escuchando -->
+        <div class="nivel" aria-hidden="true">
+          <span class="nivel-etiqueta">Señal</span>
+          <span class="nivel-barra"><span id="notas-nivel" class="nivel-relleno"></span></span>
+        </div>
+      </div>
+
+      <button type="button" id="notas-mic" class="boton-accion" aria-pressed="false">
+        <svg class="icono"><use href="#icono-microfono"/></svg>
+        <span class="boton-texto">Empezar a escuchar</span>
+      </button>
+
+      <!-- Historial de lo último que se tocó (lo llena js/notas.js) -->
+      <section class="bloque" aria-labelledby="titulo-historial">
+        <h2 id="titulo-historial" class="subtitulo">Últimas notas</h2>
+        <!-- Mensaje que se ve mientras la lista está vacía -->
+        <p id="notas-vacio" class="texto-vacio">Todavía no hay notas. Lo que toques aparecerá aquí.</p>
+        <!-- <ol> = lista ordenada: la primera es la más reciente -->
+        <ol id="notas-historial" class="historial"></ol>
+      </section>
+      <p class="texto-ayuda">Funciona mejor con una guitarra sola y sin ruido alrededor. Reconoce notas sueltas y acordes mayores y menores.</p>
+    </section>
+
+    <!-- ===================== PANTALLA: CANCIONES ===================== -->
+    <section id="pantalla-canciones" class="pantalla" hidden>
+      <header class="barra-superior">
+        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio">
+          <svg class="icono"><use href="#icono-flecha"/></svg>
+        </button>
+        <h1 class="titulo-pantalla" tabindex="-1">Canciones</h1>
+      </header>
+
+      <!-- Dos botones grandes lado a lado: grabar o elegir un audio del teléfono -->
+      <div class="fuentes-audio">
+        <!-- Grabar con el micrófono. Al tocarlo de nuevo, se detiene y se analiza -->
+        <button type="button" id="canciones-grabar" class="boton-cuadro" aria-pressed="false">
+          <!-- Botón REC redondo, como el de una grabadora antigua -->
+          <span class="rec" aria-hidden="true"></span>
+          <span id="canciones-grabar-texto">Grabar</span>
+        </button>
+        <!-- Elegir un archivo de audio guardado en el teléfono -->
+        <button type="button" id="canciones-elegir" class="boton-cuadro">
+          <svg class="icono icono-cuadro" aria-hidden="true"><use href="#icono-carpeta"/></svg>
+          Elegir audio
+        </button>
+      </div>
+      <!-- El selector de archivos real del navegador. Está escondido (hidden) porque es feo;
+           lo abre el botón "Elegir audio". accept="audio/*" = solo deja elegir archivos de audio -->
+      <input type="file" id="canciones-archivo" accept="audio/*" hidden>
+
+      <!-- Barra de "Señal" mientras se graba -->
+      <div id="canciones-nivel-caja" class="nivel" aria-hidden="true" hidden>
+        <span class="nivel-etiqueta">Señal</span>
+        <span class="nivel-barra"><span id="canciones-nivel" class="nivel-relleno"></span></span>
+      </div>
+
+      <!-- Mensajes de lo que está pasando ("Analizando...", errores, etc.) -->
+      <p id="canciones-estado" class="estado-analisis" aria-live="polite">Graba unos segundos de guitarra o elige un audio del teléfono.</p>
+      <!-- Barra de avance del análisis -->
+      <div id="canciones-progreso" class="progreso" hidden><span class="progreso-relleno"></span></div>
+
+      <!-- Resultado del análisis: la lista de acordes en el orden en que se tocan -->
+      <section class="bloque panel-amp con-tornillos" aria-labelledby="titulo-acordes">
+        <h2 id="titulo-acordes" class="subtitulo">Acordes en orden</h2>
+        <!-- Resumen: qué acordes distintos usa la canción -->
+        <p id="canciones-resumen" class="resumen-acordes" hidden></p>
+        <!-- Mensaje que se ve mientras no hay resultados -->
+        <p id="canciones-vacio" class="texto-vacio">Todavía no hay acordes. Aparecerán aquí después de analizar un audio.</p>
+        <!-- <ol> = lista numerada. js/canciones.js crea un <li> por acorde: nombre, cifrado y minuto -->
+        <ol id="canciones-lista" class="lista-acordes"></ol>
+      </section>
+      <p class="texto-ayuda">Versión básica: funciona mejor con guitarra sola y acordes mayores y menores. Analiza hasta 3 minutos de audio.</p>
+    </section>
+  </main>
+
+  <!-- Cajita de avisos que aparece abajo por unos segundos (por ejemplo: "Necesito permiso para el micrófono").
+       role="status" + aria-live = los lectores de pantalla leen el aviso en voz alta cuando aparece -->
+  <div id="aviso" class="aviso" role="status" aria-live="polite"></div>
+
+  <!-- Nuestros archivos JavaScript. Van al final para que primero exista todo el HTML de arriba.
+       El orden importa: primero los que dan herramientas (musica.js, microfono.js, medidor.js)
+       y después las pantallas que las usan -->
+  <script src="./js/musica.js"></script>
+  <script src="./js/microfono.js"></script>
+  <script src="./js/medidor.js"></script>
+  <script src="./js/afinador.js"></script>
+  <script src="./js/notas.js"></script>
+  <script src="./js/canciones.js"></script>
+  <script src="./js/app.js"></script>
+</body>
+</html>

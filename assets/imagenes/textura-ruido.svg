@@ -1,0 +1,18 @@
+<!--
+  Textura de "grano" tipo cuero/tolex (el material que forra los amplificadores).
+  No es una foto: la dibuja el navegador con un filtro matemático llamado
+  "feTurbulence", que genera ruido aleatorio. Así pesa casi nada (menos de 1 KB)
+  y se ve nítida en cualquier pantalla.
+  Se usa como fondo repetido (como un azulejo) desde css/estilos.css.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240">
+  <!-- El filtro que "inventa" el grano -->
+  <filter id="grano">
+    <!-- baseFrequency alto = grano fino; numOctaves = cuántas capas de detalle; stitchTiles hace que los bordes empalmen sin cortes al repetirse -->
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="3" stitchTiles="stitch"/>
+    <!-- Le quitamos el color al ruido (queda en escala de grises) -->
+    <feColorMatrix type="saturate" values="0"/>
+  </filter>
+  <!-- Un cuadrado del tamaño completo, pintado con el filtro y casi transparente para que sea sutil -->
+  <rect width="100%" height="100%" filter="url(#grano)" opacity="0.09"/>
+</svg>

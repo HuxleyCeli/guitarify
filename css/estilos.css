@@ -1,0 +1,1213 @@
+/*
+  ESTILOS DE GUITARIFY
+  ====================
+  Índice (busca estos números con Ctrl+F para saltar a cada parte):
+    1. Variables: colores, fuentes, formas y medidas  ← aquí se cambia la paleta
+    2. Fuente descargada (Anton)
+    3. Base: reglas generales para toda la página
+    4. Pantallas y barra superior
+    5. Componentes que se repiten (uñetas, paneles, botones, sellos, aviso)
+    6. Pantalla de Inicio
+    7. Pantalla del Afinador (medidor de aguja, lámpara, cuerdas)
+    8. Pantalla de Notas y acordes
+    9. Pantalla de Canciones
+   10. Accesibilidad: menos movimiento
+*/
+
+
+/* ==================== 1. VARIABLES ==================== */
+
+/* ":root" es "toda la página". Las variables que definimos aquí adentro se
+   pueden usar en cualquier parte de este archivo escribiendo var(--nombre). */
+:root {
+  /* --- 1a. COLORES PRINCIPALES: cambia estos y cambia TODA la app --- */
+  --color-fondo: #111010;      /* negro cálido, como el cuero de un amplificador */
+  --color-superficie: #1d1a18; /* gris muy oscuro, para paneles y botones */
+  --color-rojo: #c8102e;       /* rojo fuerte, para acentos y uñetas */
+  --color-dorado: #d4af37;     /* dorado, para títulos, bordes y detalles */
+  --color-blanco: #f5f1e8;     /* blanco hueso, para el texto principal */
+  --color-metal: #b8b8b8;      /* gris metálico, para tornillos, marcos y cuerdas */
+  --color-crema: #f1e2b6;      /* crema, la cara iluminada del medidor de aguja */
+  --color-tinta: #2b2118;      /* café casi negro, las rayas y números del medidor */
+
+  /* --- 1b. COLORES DERIVADOS: se calculan SOLOS a partir de los principales ---
+     "color-mix" mezcla dos colores. Por ejemplo, "rojo con 40% de negro" da un
+     rojo oscuro. Así, si cambias --color-rojo arriba, todos los rojos claros y
+     oscuros se actualizan automáticamente. */
+  --color-rojo-oscuro: color-mix(in srgb, var(--color-rojo), black 40%);
+  --color-rojo-claro: color-mix(in srgb, var(--color-rojo), white 25%);
+  --color-dorado-claro: color-mix(in srgb, var(--color-dorado), white 45%);
+  --color-dorado-oscuro: color-mix(in srgb, var(--color-dorado), black 40%);
+  --color-superficie-alta: color-mix(in srgb, var(--color-superficie), white 7%);
+  --color-texto-suave: color-mix(in srgb, var(--color-blanco), var(--color-fondo) 32%);
+  --color-metal-claro: color-mix(in srgb, var(--color-metal), white 65%);
+  --color-metal-oscuro: color-mix(in srgb, var(--color-metal), black 55%);
+  --color-crema-sombra: color-mix(in srgb, var(--color-crema), var(--color-dorado-oscuro) 35%);
+  --color-lampara-apagada: color-mix(in srgb, var(--color-dorado), black 72%);
+  --color-rejilla-hilo: color-mix(in srgb, var(--color-superficie), white 9%);
+  --color-rejilla-fondo: color-mix(in srgb, var(--color-fondo), black 45%);
+  --color-luz-escenario: color-mix(in srgb, var(--color-dorado), transparent 82%);
+  --color-luz-roja: color-mix(in srgb, var(--color-rojo), transparent 78%);
+  --color-fondo-vidrio: color-mix(in srgb, var(--color-fondo), transparent 30%);
+  /* Sombras y brillos semitransparentes. "rgb(0 0 0 / 0.55)" = negro al 55% */
+  --color-sombra: rgb(0 0 0 / 0.55);
+  --color-brillo: rgb(255 255 255 / 0.5);
+  --color-brillo-suave: rgb(255 255 255 / 0.07);
+
+  /* --- 1c. TEXTURAS y ADORNOS hechos solo con CSS (sin imágenes) --- */
+  /* Tornillo: un círculo metálico claro con un anillo oscuro alrededor */
+  --tornillo: var(--color-metal-claro) 0 1.8px, var(--color-metal-oscuro) 2.6px 4.2px, transparent 5px;
+  /* Metal cepillado: rayitas finísimas encima de un degradado gris */
+  --metal-cepillado:
+    repeating-linear-gradient(90deg, var(--color-brillo-suave) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, var(--color-metal-claro), var(--color-metal) 45%, var(--color-metal-oscuro));
+
+  /* --- 1d. FUENTES --- */
+  /* Si "Anton" no cargara, el navegador prueba las siguientes, en orden */
+  --fuente-titulos: "Anton", Impact, "Arial Narrow Bold", sans-serif;
+  /* "system-ui" = la letra normal del teléfono (San Francisco en iPhone, Roboto en Android) */
+  --fuente-texto: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* --- 1e. FORMAS --- */
+  /* Silueta de una uñeta de guitarra, dibujada como SVG y guardada aquí mismo como texto
+     (así no depende de ningún archivo externo). Se usa como "molde" (máscara) para
+     recortar botones con esa forma. */
+  --forma-pua: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 110'%3E%3Cpath d='M50 108C38 100 4 62 2 34 1 12 22 2 50 2s49 10 48 32c-2 28-36 66-48 74z'/%3E%3C/svg%3E");
+
+  /* --- 1f. MEDIDAS que se repiten --- */
+  --ancho-app: 480px;        /* ancho máximo: en una compu, la app se ve como una columna de teléfono */
+  --radio: 14px;             /* redondeo de las esquinas de paneles y botones */
+  --margen-lateral: 16px;    /* espacio a los costados de la pantalla */
+  --transicion: 160ms ease;  /* velocidad de las animaciones cortas (160 milésimas de segundo) */
+}
+
+
+/* ==================== 2. FUENTE DESCARGADA (ANTON) ==================== */
+
+/* "@font-face" registra una fuente que está guardada DENTRO del proyecto
+   (en assets/fuentes/), así funciona sin internet. Anton es una fuente libre
+   (licencia OFL, ver assets/fuentes/anton-licencia-OFL.txt), alta y angosta,
+   perfecta para el estilo póster de concierto. */
+@font-face {
+  font-family: "Anton";                                     /* el nombre con el que la usamos */
+  src: url("../assets/fuentes/anton.woff2") format("woff2"); /* dónde está el archivo (ruta relativa) */
+  font-weight: 400;                                          /* es su único grosor */
+  font-display: swap;  /* mientras carga, muestra otra letra en vez de dejar el texto invisible */
+}
+
+
+/* ==================== 3. BASE ==================== */
+
+/* Reseteo: "*" = TODOS los elementos. "::before" y "::after" son partes extra
+   que el CSS puede agregar a cada elemento (las usamos para adornos). */
+*,
+*::before,
+*::after {
+  margin: 0;              /* saca el espacio de afuera que el navegador pone por defecto */
+  padding: 0;             /* saca el espacio de adentro que el navegador pone por defecto */
+  box-sizing: border-box; /* el borde y el relleno quedan DENTRO del ancho que indicamos (más fácil de calcular) */
+}
+
+html {
+  background-color: var(--color-fondo); /* evita un destello blanco mientras carga */
+  -webkit-text-size-adjust: 100%;       /* que el iPhone no agrande el texto por su cuenta al girar la pantalla */
+}
+
+/* "body" contiene todo lo visible */
+body {
+  min-height: 100vh;      /* como mínimo, alto completo de la pantalla ("vh" = alto de la ventana)... */
+  min-height: 100dvh;     /* ...y "dvh" es mejor en teléfonos: descuenta la barra del navegador que aparece y desaparece */
+  font-family: var(--fuente-texto);
+  line-height: 1.45;      /* separación entre líneas de texto, para que se lea cómodo */
+  color: var(--color-blanco);
+  background-color: var(--color-fondo);
+  /* Varias capas de fondo, una encima de otra (la primera de la lista queda arriba):
+     1) el grano de cuero, 2) una luz roja de escenario desde arriba, 3) una viñeta oscura en los bordes */
+  background-image:
+    url("../assets/imagenes/textura-ruido.svg"),
+    radial-gradient(ellipse 130% 55% at 50% -8%, var(--color-luz-roja), transparent 70%),
+    radial-gradient(ellipse at 50% 40%, transparent 55%, var(--color-sombra));
+  -webkit-tap-highlight-color: transparent; /* saca el rectángulo azul que aparece al tocar algo en Android */
+}
+
+/* Los botones, por defecto, no heredan la fuente de la página: se lo pedimos aquí */
+button {
+  font: inherit;        /* "inherit" = hereda del elemento que lo contiene */
+  color: inherit;
+  cursor: pointer;      /* en una compu, muestra la manito al pasar el mouse */
+  touch-action: manipulation; /* el toque responde al instante (sin esperar un posible doble toque para hacer zoom) */
+  user-select: none;    /* que al mantener apretado no se seleccione el texto del botón */
+}
+
+/* Íconos de la "caja de moldes" del HTML: miden lo mismo que la letra (1em) y usan su color */
+.icono {
+  width: 1em;
+  height: 1em;
+  flex-shrink: 0;       /* que no se achiquen si falta espacio */
+}
+
+/* La "caja de moldes" de íconos no se debe ver */
+.sprite {
+  display: none;
+}
+
+/* Contorno que aparece al navegar con teclado (Tab). ":focus-visible" solo se
+   activa con teclado, no al tocar con el dedo, así no molesta en el teléfono. */
+:focus-visible {
+  outline: 3px solid var(--color-dorado-claro);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+
+/* A los títulos les pasamos el foco desde app.js solo para los lectores de
+   pantalla; no hace falta dibujarles un contorno */
+[tabindex="-1"]:focus {
+  outline: none;
+}
+
+
+/* ==================== 4. PANTALLAS Y BARRA SUPERIOR ==================== */
+
+/* Contenedor principal: centrado y con ancho máximo */
+.app {
+  max-width: var(--ancho-app);
+  margin: 0 auto; /* "auto" a los costados = centrado horizontal */
+  /* "max(a, b)" elige el mayor. "env(safe-area-inset-...)" es el espacio que ocupan el notch
+     y la barrita de abajo del iPhone: así nada queda tapado */
+  padding:
+    0
+    max(var(--margen-lateral), env(safe-area-inset-right))
+    max(28px, env(safe-area-inset-bottom))
+    max(var(--margen-lateral), env(safe-area-inset-left));
+}
+
+/* Cada pantalla apila sus partes de arriba hacia abajo, con 20px de separación */
+.pantalla {
+  display: flex;
+  flex-direction: column; /* los hijos van uno debajo del otro */
+  gap: 20px;              /* espacio entre cada hijo */
+  animation: aparecer 280ms ease-out; /* al mostrarse, entra con una animación suave (definida abajo) */
+}
+
+/* Todo lo que tenga el atributo "hidden" NO se muestra, sin excepción.
+   Hace falta escribirlo porque reglas como "display: flex" le ganarían al
+   "hidden" del HTML. "!important" asegura que esta regla gane siempre. */
+[hidden] {
+  display: none !important;
+}
+
+/* La animación "aparecer": empieza transparente y 14px más abajo, y termina normal */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+/* Barra de arriba de cada pantalla interna: uñeta de regresar + título */
+.barra-superior {
+  position: sticky;   /* "pegajosa": al hacer scroll se queda pegada arriba */
+  top: 0;
+  z-index: 10;        /* queda por encima del resto del contenido al hacer scroll */
+  display: grid;
+  grid-template-columns: 52px 1fr 52px; /* 3 columnas: uñeta, título, y un espacio igual a la uñeta para que el título quede centrado */
+  align-items: center;
+  /* Relleno de arriba = espacio del notch + 10px */
+  padding: calc(env(safe-area-inset-top) + 10px) 0 12px;
+  /* Márgenes negativos: la barra se estira hasta los bordes de la pantalla */
+  margin: 0 calc(var(--margen-lateral) * -1);
+  padding-inline: 10px;
+  /* Fondo semitransparente + desenfoque (efecto vidrio esmerilado): el contenido que
+     pasa por debajo al hacer scroll se ve borroso, y el brillo rojo del fondo se sigue viendo */
+  background: linear-gradient(var(--color-fondo-vidrio), transparent);
+  -webkit-backdrop-filter: blur(10px); /* versión para Safari */
+  backdrop-filter: blur(10px);         /* desenfoca lo que está DETRÁS de la barra */
+  /* La máscara desvanece solo los últimos 12px de abajo (el relleno), sin tocar la uñeta ni el título */
+  -webkit-mask-image: linear-gradient(black calc(100% - 12px), transparent);
+  mask-image: linear-gradient(black calc(100% - 12px), transparent);
+}
+
+/* El título de cada pantalla interna */
+.titulo-pantalla {
+  grid-column: 2;                  /* va en la columna del medio */
+  text-align: center;
+  font-family: var(--fuente-titulos);
+  font-weight: 400;                /* Anton ya es gruesa; sin esto el navegador la engordaría artificialmente */
+  font-size: clamp(1.6rem, 8vw, 2.1rem); /* "clamp(mín, ideal, máx)": crece con la pantalla pero con límites */
+  letter-spacing: 0.06em;          /* "em" = relativo al tamaño de la letra */
+  text-transform: uppercase;       /* TODO EN MAYÚSCULAS */
+  line-height: 1;
+  color: var(--color-dorado);
+  text-shadow: 2px 2px 0 var(--color-rojo-oscuro); /* sombra roja corrida, estilo póster */
+}
+
+/* Subtítulos de cada sección ("Elige una cuerda", "Últimas notas", ...) */
+.subtitulo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--fuente-titulos);
+  font-weight: 400;
+  font-size: 1.15rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-dorado);
+  margin-bottom: 12px;
+}
+
+/* Una rayita dorada que se estira desde el subtítulo hasta el borde derecho */
+.subtitulo::after {
+  content: "";       /* los ::after necesitan "content" para existir, aunque esté vacío */
+  flex: 1;           /* ocupa todo el espacio que sobra */
+  height: 2px;
+  background: linear-gradient(90deg, var(--color-dorado-oscuro), transparent);
+}
+
+
+/* ==================== 5. COMPONENTES QUE SE REPITEN ==================== */
+
+/* --- 5a. UÑETA (púa de guitarra) ---
+   Cómo se dibuja: el botón en sí es invisible. Sus dos "partes extra"
+   (::before y ::after) se recortan con el molde --forma-pua:
+     ::before = uñeta dorada de fondo (hace de borde)
+     ::after  = uñeta roja, un poquito más chica, encima
+   El ícono o texto del botón queda arriba de las dos. */
+.pua {
+  --pua-ancho: 56px;         /* variable propia: cada uñeta puede cambiar su tamaño */
+  position: relative;        /* para ubicar ::before y ::after dentro de ella */
+  isolation: isolate;        /* crea una "capa" propia, así ::before/::after no se van detrás de la página */
+  display: inline-grid;
+  place-items: center;       /* centra el contenido vertical y horizontalmente */
+  width: var(--pua-ancho);
+  aspect-ratio: 100 / 110;   /* alto = ancho × 1,1 (la proporción del molde) */
+  padding-bottom: 14%;       /* sube un poco el contenido, donde la uñeta es más ancha */
+  border: 0;
+  background: none;
+  color: var(--color-blanco);
+  transition: transform var(--transicion);
+}
+
+/* Lo que tienen en común las dos partes de la uñeta */
+.pua::before,
+.pua::after {
+  content: "";
+  position: absolute;
+  z-index: -1;               /* detrás del ícono/texto */
+  -webkit-mask: var(--forma-pua) center / contain no-repeat; /* recorta con la forma de uñeta (versión para Safari) */
+  mask: var(--forma-pua) center / contain no-repeat;         /* recorta con la forma de uñeta (versión estándar) */
+}
+
+/* Uñeta dorada de fondo = el borde */
+.pua::before {
+  inset: 0;                  /* ocupa toda la caja (arriba, derecha, abajo e izquierda en 0) */
+  background: linear-gradient(160deg, var(--color-dorado-claro), var(--color-dorado) 45%, var(--color-dorado-oscuro));
+}
+
+/* Uñeta roja de encima = el relleno, con un brillo arriba a la izquierda */
+.pua::after {
+  inset: 3px;                /* 3px más chica por cada lado → deja ver el borde dorado */
+  background: radial-gradient(circle at 35% 25%, var(--color-rojo-claro), var(--color-rojo) 45%, var(--color-rojo-oscuro));
+}
+
+/* Al apretar una uñeta que es botón, se achica un poquito (se siente como un botón real) */
+button.pua:active {
+  transform: scale(0.92);
+}
+
+/* Uñeta del botón Regresar: más chica */
+.pua-regresar {
+  --pua-ancho: 46px;
+  font-size: 1.3rem;         /* tamaño del ícono de flecha */
+  justify-self: start;       /* se pega a la izquierda de su columna */
+}
+
+/* --- 5b. PANELES --- */
+
+/* Panel de amplificador: fondo de cuero oscuro con borde dorado ("piping") */
+.panel-amp {
+  position: relative;        /* para ubicar adentro el sello de ejemplo y los tornillos */
+  padding: 22px 18px;
+  border-radius: calc(var(--radio) + 4px);
+  border: 2px solid var(--color-dorado-oscuro);
+  background:
+    url("../assets/imagenes/textura-ruido.svg"),
+    linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
+  /* Sombras: un brillo fino arriba por dentro ("inset") y una sombra grande debajo */
+  box-shadow:
+    inset 0 1px 0 var(--color-brillo-suave),
+    0 14px 30px var(--color-sombra);
+}
+
+/* Panel con tela de parrilla de amplificador: dos rayados diagonales cruzados forman el "tejido" */
+.panel-rejilla {
+  position: relative;
+  border-radius: calc(var(--radio) + 6px);
+  border: 3px solid var(--color-dorado-oscuro);
+  background:
+    radial-gradient(ellipse at 50% 0%, var(--color-luz-escenario), transparent 70%),
+    repeating-linear-gradient(45deg, var(--color-rejilla-hilo) 0 1.5px, transparent 1.5px 5px),
+    repeating-linear-gradient(-45deg, var(--color-rejilla-hilo) 0 1.5px, transparent 1.5px 5px),
+    var(--color-rejilla-fondo);
+  box-shadow:
+    inset 0 0 30px var(--color-sombra),
+    0 14px 30px var(--color-sombra);
+}
+
+/* 4 tornillos en las esquinas, dibujados con 4 círculos (radial-gradient) en una sola capa */
+.con-tornillos::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;      /* los tornillos no reciben toques: los toques "pasan a través" */
+  border-radius: inherit;
+  background:
+    radial-gradient(circle at 11px 11px, var(--tornillo)),
+    radial-gradient(circle at calc(100% - 11px) 11px, var(--tornillo)),
+    radial-gradient(circle at 11px calc(100% - 11px), var(--tornillo)),
+    radial-gradient(circle at calc(100% - 11px) calc(100% - 11px), var(--tornillo));
+}
+
+/* Sección simple (sin fondo) para agrupar un subtítulo con su contenido */
+.bloque {
+  display: block;
+}
+
+/* --- 5c. BOTONES --- */
+
+/* Botón de acción principal (rojo metalizado, ancho completo) */
+.boton-accion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;          /* alto mínimo cómodo para el dedo (recomendación: al menos 44-48px) */
+  padding: 14px 20px;
+  border: 2px solid var(--color-dorado);
+  border-radius: 999px;      /* un número muy grande = extremos totalmente redondos (forma de píldora) */
+  background:
+    linear-gradient(180deg, var(--color-brillo-suave), transparent 50%),
+    linear-gradient(180deg, var(--color-rojo-claro), var(--color-rojo) 50%, var(--color-rojo-oscuro));
+  color: var(--color-blanco);
+  font-family: var(--fuente-titulos);
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 6px 0 var(--color-rojo-oscuro), 0 12px 20px var(--color-sombra); /* la primera sombra hace de "canto" del botón */
+  transition: transform var(--transicion), box-shadow var(--transicion);
+}
+
+/* Al apretarlo, baja 4px y su "canto" se achica: parece que se hunde */
+.boton-accion:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 var(--color-rojo-oscuro), 0 6px 12px var(--color-sombra);
+}
+
+/* Botón "encendido" (micrófono escuchando): fondo oscuro con resplandor rojo
+   y el ícono latiendo, para que se note que está grabando/escuchando */
+.boton-accion[aria-pressed="true"] {
+  background: linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
+  border-color: var(--color-rojo);
+  box-shadow: 0 6px 0 var(--color-rojo-oscuro), 0 0 24px var(--color-luz-roja);
+}
+
+.boton-accion[aria-pressed="true"] .icono {
+  color: var(--color-rojo-claro);
+  animation: latido 1.2s ease-in-out infinite; /* "infinite" = se repite para siempre */
+}
+
+/* La animación "latido": a la mitad del tiempo se pone casi transparente */
+@keyframes latido {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* Botones desactivados (por ejemplo, mientras se analiza una canción) */
+button:disabled {
+  opacity: 0.5;
+  cursor: progress;          /* en una compu, el cursor muestra que algo se está procesando */
+}
+
+/* --- 5d. SELLOS Y NOTAS DE EJEMPLO --- */
+
+/* Sello rojo "EJEMPLO", inclinado como un timbre de goma, en la esquina de un panel */
+.sello-ejemplo {
+  position: absolute;
+  top: -11px;                /* sobresale un poco por arriba del panel */
+  right: 18px;
+  z-index: 2;
+  padding: 3px 10px 2px;
+  border-radius: 4px;
+  background: var(--color-rojo);
+  color: var(--color-blanco);
+  font-family: var(--fuente-titulos);
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  transform: rotate(4deg);   /* inclinado 4 grados */
+  /* Dos sombras sin difuminar = doble borde (uno del color del fondo y otro rojo), estilo sello */
+  box-shadow: 0 0 0 2px var(--color-fondo), 0 0 0 3.5px var(--color-rojo);
+}
+
+/* Texto chico de ayuda al final de cada pantalla (explica cómo usarla o que algo es de ejemplo) */
+.texto-ayuda {
+  font-size: 0.82rem;
+  color: var(--color-texto-suave);
+  text-align: center;
+  text-wrap: balance;        /* reparte las palabras para que las líneas queden parejas */
+}
+
+/* Mensaje que se ve cuando una lista todavía está vacía */
+.texto-vacio {
+  padding: 6px 0;
+  font-size: 0.9rem;
+  color: var(--color-texto-suave);
+  text-align: center;
+}
+
+/* Botón con aspecto de enlace (texto subrayado), para acciones secundarias */
+.enlace {
+  display: block;
+  margin: 6px auto 0;
+  padding: 8px;
+  border: 0;
+  background: none;
+  color: var(--color-dorado-claro);
+  font-size: 0.9rem;
+  text-decoration: underline;
+  text-underline-offset: 3px; /* separa un poco el subrayado del texto */
+}
+
+/* --- 5e. BARRA DE SEÑAL (la "prueba de micrófono") ---
+   Imita los medidores de LED de un amplificador: una fila de lucecitas que se
+   encienden de izquierda a derecha según el volumen. JavaScript solo cambia la
+   variable --nivel (de 0% a 100%). */
+.nivel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.nivel-etiqueta {
+  font-family: var(--fuente-titulos);
+  font-size: 0.8rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+/* El "canal" oscuro donde se encienden las lucecitas */
+.nivel-barra {
+  position: relative;
+  flex: 1;                   /* ocupa todo el ancho que sobra */
+  height: 12px;
+  border-radius: 3px;
+  background: var(--color-rejilla-fondo);
+  box-shadow: inset 0 1px 3px var(--color-sombra);
+  overflow: hidden;
+}
+
+/* Las lucecitas encendidas: un degradado dorado → rojo del ancho completo,
+   "recortado" (clip-path) para mostrar solo el porcentaje de --nivel.
+   Así cada lucecita tiene siempre el mismo color, como en un medidor real. */
+.nivel-relleno {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--color-dorado-oscuro), var(--color-dorado) 60%, var(--color-rojo-claro) 85%, var(--color-rojo));
+  clip-path: inset(0 calc(100% - var(--nivel, 0%)) 0 0); /* recorta desde la derecha */
+  transition: clip-path 80ms linear;
+}
+
+/* Rayitas oscuras encima, que separan las "lucecitas" */
+.nivel-barra::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(90deg, transparent 0 7px, var(--color-rejilla-fondo) 7px 9px);
+}
+
+/* --- 5f. BARRA DE AVANCE (mientras se analiza una canción) --- */
+.progreso {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--color-rejilla-fondo);
+  overflow: hidden;
+}
+
+.progreso-relleno {
+  display: block;
+  height: 100%;
+  width: var(--avance, 0%);  /* JavaScript cambia --avance de 0% a 100% */
+  background: linear-gradient(90deg, var(--color-dorado-oscuro), var(--color-dorado));
+  transition: width 120ms linear;
+}
+
+/* --- 5g. AVISO (cajita que aparece abajo por unos segundos) --- */
+.aviso {
+  position: fixed;           /* "fija": no se mueve al hacer scroll */
+  left: 50%;
+  bottom: calc(env(safe-area-inset-bottom) + 20px);
+  z-index: 50;               /* por encima de todo */
+  width: max-content;        /* tan ancha como su texto... */
+  max-width: min(92vw, 420px); /* ...pero nunca más que la pantalla */
+  padding: 12px 18px;
+  border: 1px solid var(--color-dorado);
+  border-radius: 12px;
+  background: var(--color-superficie-alta);
+  color: var(--color-blanco);
+  text-align: center;
+  box-shadow: 0 10px 30px var(--color-sombra);
+  /* Estado normal: invisible y un poco más abajo */
+  opacity: 0;
+  transform: translate(-50%, 16px); /* -50% en X la centra (porque "left: 50%" deja su borde izquierdo en el centro) */
+  pointer-events: none;      /* mientras está invisible no bloquea toques */
+  transition: opacity 220ms ease, transform 220ms ease;
+}
+
+/* Cuando app.js le agrega la clase "visible", aparece subiendo */
+.aviso.visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+
+/* ==================== 6. PANTALLA DE INICIO ==================== */
+
+/* El Inicio tiene su propio espacio arriba (no tiene barra superior) */
+.pantalla-inicio {
+  padding-top: calc(env(safe-area-inset-top) + 24px);
+  gap: 22px;
+}
+
+/* El cartel del nombre, sobre la tela de parrilla */
+.cartel {
+  padding: 26px 16px 24px;
+  text-align: center;
+}
+
+/* Las 3 estrellas de arriba del nombre */
+.cartel-estrellas {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  color: var(--color-dorado);
+  font-size: 1rem;           /* tamaño de las estrellas chicas (los íconos miden 1em) */
+  margin-bottom: 6px;
+}
+
+/* La estrella del medio, más grande */
+.icono-grande {
+  font-size: 1.5em;
+}
+
+/* El nombre GUITARIFY en letras de póster */
+.logo {
+  font-family: var(--fuente-titulos);
+  font-weight: 400;
+  font-size: clamp(3.3rem, 18vw, 5.2rem);
+  line-height: 1;
+  letter-spacing: 0.03em;
+  color: var(--color-dorado);      /* color del rayo (el rayo usa el color del texto) */
+  /* Truco para letras con degradado dorado: pintamos el fondo con el degradado,
+     lo recortamos con la forma de las letras ("background-clip: text") y hacemos
+     transparente el relleno de las letras para que se vea ese fondo. */
+  background: linear-gradient(180deg, var(--color-dorado-claro) 10%, var(--color-dorado) 55%, var(--color-dorado-oscuro));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  /* Sombra roja corrida. Usamos "drop-shadow" porque "text-shadow" se vería por
+     encima de las letras transparentes. */
+  filter: drop-shadow(3px 3px 0 var(--color-rojo)) drop-shadow(0 8px 14px var(--color-sombra));
+}
+
+/* El rayo que reemplaza a la segunda "I" */
+.logo-rayo {
+  width: 0.42em;
+  height: 0.84em;            /* un poco más alto que las mayúsculas de Anton, como un rayo que "se escapa" */
+  margin: 0 0.01em;
+  vertical-align: -0.04em;   /* lo baja un poquito para alinearlo con la base de las letras */
+}
+
+/* La frase "Afina · Escucha · Toca" */
+.lema {
+  margin-top: 10px;
+  font-family: var(--fuente-titulos);
+  font-size: 1.05rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-blanco);
+}
+
+/* Cuerdas decorativas: 6 líneas horizontales */
+.cuerdas-deco {
+  display: grid;
+  gap: 6px;
+  padding: 0 6px;
+}
+
+.cuerdas-deco span {
+  display: block;
+  height: 1px;               /* grosor base (la 1ª cuerda, la más fina) */
+  border-radius: 2px;
+  /* Degradado metálico que se desvanece en las puntas */
+  background: linear-gradient(90deg, transparent, var(--color-metal-claro) 18%, var(--color-metal) 50%, var(--color-metal-claro) 82%, transparent);
+  opacity: 0.55;
+}
+
+/* ":nth-child(n)" = el hijo número n. Cada cuerda es un poquito más gruesa que la anterior */
+.cuerdas-deco span:nth-child(2) { height: 1.2px; }
+.cuerdas-deco span:nth-child(3) { height: 1.6px; }
+.cuerdas-deco span:nth-child(4) { height: 2px; }
+.cuerdas-deco span:nth-child(5) { height: 2.5px; }
+.cuerdas-deco span:nth-child(6) { height: 3px; }
+
+/* El menú: los 3 botones uno debajo del otro */
+.menu {
+  display: grid;
+  gap: 14px;
+}
+
+/* Cada botón del menú: placa de cuero con borde dorado, en 3 columnas (uñeta | textos | flechita) */
+.boton-menu {
+  display: grid;
+  grid-template-columns: auto 1fr auto; /* "auto" = lo que necesite; "1fr" = todo lo que sobra */
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 12px 14px 12px 12px;
+  text-align: left;
+  border: 2px solid var(--color-dorado-oscuro);
+  border-radius: var(--radio);
+  background:
+    url("../assets/imagenes/textura-ruido.svg"),
+    linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
+  box-shadow:
+    inset 0 1px 0 var(--color-brillo-suave),
+    0 8px 18px var(--color-sombra);
+  transition: transform var(--transicion), border-color var(--transicion);
+}
+
+/* Al apretar: baja un poquito y el borde se ilumina */
+.boton-menu:active {
+  transform: translateY(2px) scale(0.99);
+  border-color: var(--color-dorado);
+}
+
+/* "@media (hover: hover)" = solo en aparatos con mouse (en el teléfono no existe "pasar por encima") */
+@media (hover: hover) {
+  .boton-menu:hover {
+    border-color: var(--color-dorado);
+  }
+}
+
+/* La uñeta del menú, con el ícono adentro */
+.menu-pua {
+  --pua-ancho: 54px;
+  font-size: 1.45rem;        /* tamaño del ícono */
+}
+
+/* Columna de textos del botón */
+.menu-textos {
+  display: grid;
+  gap: 3px;
+}
+
+/* Nombre de la sección, en letra de póster */
+.menu-titulo {
+  font-family: var(--fuente-titulos);
+  font-size: 1.45rem;
+  line-height: 1.05;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--color-blanco);
+}
+
+/* Descripción corta, en letra normal y color más suave */
+.menu-detalle {
+  font-size: 0.86rem;
+  line-height: 1.3;
+  color: var(--color-texto-suave);
+}
+
+/* Flechita de la derecha */
+.menu-entrar {
+  font-size: 1.3rem;
+  color: var(--color-dorado);
+}
+
+/* Pie de página del Inicio */
+.pie {
+  text-align: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+
+/* ==================== 7. PANTALLA DEL AFINADOR ==================== */
+
+/* --- 7a. Medidor de aguja (VU meter) ---
+   El dibujo está en index.html (SVG) y la escala la dibuja js/medidor.js.
+   En SVG, los colores se ponen con "fill" (relleno) y "stroke" (línea). */
+
+.vu {
+  display: block;
+  width: 100%;               /* ocupa todo el ancho del panel... */
+  height: auto;              /* ...y el alto se calcula solo, manteniendo la proporción */
+  filter: drop-shadow(0 6px 10px var(--color-sombra));
+}
+
+/* Colores de los degradados (cada <stop> del SVG tiene una de estas clases) */
+.vu-metal-claro { stop-color: var(--color-metal-claro); }
+.vu-metal-oscuro { stop-color: var(--color-metal-oscuro); }
+.vu-crema { stop-color: var(--color-crema); }
+.vu-crema-sombra { stop-color: var(--color-crema-sombra); }
+
+/* Rayitas de la escala */
+.vu-marca {
+  stroke: var(--color-tinta);
+  stroke-width: 1.4;
+  stroke-linecap: round;     /* puntas redondeadas */
+}
+
+/* Rayitas largas (cada 10 cents): más gruesas */
+.vu-marca-larga {
+  stroke-width: 2.4;
+}
+
+/* La rayita del 0 (el centro = afinado): la más gruesa, en rojo */
+.vu-marca-centro {
+  stroke: var(--color-rojo);
+  stroke-width: 3;
+}
+
+/* Números de la escala (−40, −20, 0, +20, +40) */
+.vu-numero {
+  fill: var(--color-tinta);
+  font: 700 11px var(--fuente-texto); /* grosor, tamaño y familia de letra en una sola línea */
+  text-anchor: middle;               /* el número queda centrado sobre su punto */
+}
+
+/* Arcos de color de la escala */
+.vu-zona {
+  fill: none;                /* solo la línea, sin relleno */
+  stroke-width: 5;
+}
+
+/* Zonas rojas en los extremos: muy desafinado */
+.vu-zona-peligro {
+  stroke: var(--color-rojo);
+}
+
+/* Zona dorada al centro: afinado */
+.vu-zona-afinada {
+  stroke: var(--color-dorado-oscuro);
+}
+
+/* Símbolos ♭ y ♯ */
+.vu-simbolo {
+  fill: var(--color-tinta);
+  font: 700 24px var(--fuente-texto);
+  text-anchor: middle;
+}
+
+/* Palabra CENTS */
+.vu-leyenda {
+  fill: var(--color-tinta);
+  font: 12px var(--fuente-titulos);
+  letter-spacing: 0.35em;
+  text-anchor: middle;
+  opacity: 0.7;
+}
+
+/* La aguja gira usando la variable "--angulo" que le pone js/medidor.js */
+.vu-aguja {
+  transform-origin: 150px 170px;           /* gira alrededor del eje (x=150, y=170 en el dibujo) */
+  transform: rotate(var(--angulo, 0deg));  /* si no hay --angulo todavía, usa 0 grados (vertical) */
+  /* Al cambiar de ángulo se mueve con una curva que "se pasa" un poquito y vuelve,
+     como la inercia de una aguja real */
+  transition: transform 420ms cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+
+.vu-aguja line {
+  stroke: var(--color-rojo);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+}
+
+/* Reflejo del vidrio */
+.vu-reflejo {
+  fill: var(--color-brillo);
+  opacity: 0.35;
+}
+
+/* --- 7b. Lámpara piloto "Afinada" --- */
+.lampara {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-family: var(--fuente-titulos);
+  font-size: 0.95rem;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  transition: color var(--transicion);
+}
+
+/* El foquito: apagado, con un aro metálico */
+.lampara-foco {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;        /* círculo */
+  background: radial-gradient(circle at 35% 30%, var(--color-dorado-oscuro), var(--color-lampara-apagada) 60%);
+  box-shadow:
+    0 0 0 3px var(--color-metal-oscuro),  /* aro metálico oscuro */
+    0 0 0 4px var(--color-metal-claro);   /* filo claro del aro */
+  transition: background var(--transicion), box-shadow var(--transicion);
+}
+
+/* Cuando js/medidor.js le pone la clase "encendida": el texto y el foco se iluminan */
+.lampara.encendida {
+  color: var(--color-dorado-claro);
+}
+
+.lampara.encendida .lampara-foco {
+  background: radial-gradient(circle at 35% 30%, var(--color-blanco), var(--color-dorado-claro) 30%, var(--color-dorado) 75%);
+  box-shadow:
+    0 0 0 3px var(--color-metal-oscuro),
+    0 0 0 4px var(--color-metal-claro),
+    0 0 16px 5px var(--color-dorado);     /* resplandor */
+}
+
+/* --- 7c. Lectura de la nota --- */
+.lectura {
+  text-align: center;
+}
+
+/* La nota en letra gigante (se usa también en la pantalla de Notas) */
+.nota-grande {
+  font-family: var(--fuente-titulos);
+  font-size: clamp(4.5rem, 26vw, 6.5rem);
+  line-height: 1;
+  color: var(--color-blanco);
+  text-shadow:
+    3px 3px 0 var(--color-rojo-oscuro),   /* sombra roja corrida */
+    0 0 30px var(--color-luz-escenario);  /* resplandor suave */
+}
+
+/* Detalle debajo de la nota: cuerda, nombre en inglés, frecuencia */
+.nota-detalle {
+  color: var(--color-texto-suave);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums; /* los números ocupan todos el mismo ancho (no "bailan" al cambiar) */
+}
+
+/* Pastilla con el estado de la afinación */
+.estado-afinacion {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--color-rojo);
+  background: var(--color-superficie);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* "[data-estado='afinado']" = cuando el atributo data-estado vale "afinado" (lo pone js/afinador.js) */
+/* Esperando que suene una cuerda: borde dorado apagado y texto suave */
+.estado-afinacion[data-estado="esperando"] {
+  border-color: var(--color-dorado-oscuro);
+  color: var(--color-texto-suave);
+}
+
+/* Texto que explica el modo del afinador (automático o manual) */
+.modo {
+  margin-top: 12px;
+  font-size: 0.85rem;
+  color: var(--color-texto-suave);
+  text-align: center;
+}
+
+.estado-afinacion[data-estado="afinado"] {
+  border-color: var(--color-dorado);
+  color: var(--color-dorado-claro);
+}
+
+/* --- 7d. Las 6 cuerdas (uñetas creadas por js/afinador.js) --- */
+.cuerdas {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr); /* 6 columnas iguales */
+  gap: 6px;
+  justify-items: center;     /* cada uñeta centrada en su columna */
+}
+
+.cuerda {
+  --pua-ancho: min(56px, 100%); /* 56px, o menos si la columna es más angosta */
+  gap: 0;
+  line-height: 1.05;
+}
+
+/* Parte oscura de la uñeta cuando la cuerda NO está elegida */
+.cuerda::after {
+  background: radial-gradient(circle at 35% 25%, var(--color-superficie-alta), var(--color-superficie) 70%);
+}
+
+/* Nombre de la nota dentro de la uñeta */
+.cuerda-nota {
+  font-family: var(--fuente-titulos);
+  font-size: 1.15rem;
+  letter-spacing: 0.03em;
+}
+
+/* Número de cuerda (6ª, 5ª, ...) */
+.cuerda-numero {
+  font-size: 0.68rem;
+  color: var(--color-texto-suave);
+}
+
+/* Cuerda elegida: "aria-pressed='true'" (lo pone js/afinador.js) → uñeta roja */
+.cuerda[aria-pressed="true"]::after {
+  background: radial-gradient(circle at 35% 25%, var(--color-rojo-claro), var(--color-rojo) 45%, var(--color-rojo-oscuro));
+}
+
+.cuerda[aria-pressed="true"] .cuerda-numero {
+  color: var(--color-blanco);
+}
+
+
+/* ==================== 8. PANTALLA DE NOTAS Y ACORDES ==================== */
+
+/* Panel de escenario: además del cuero, una luz de reflector dorada desde arriba */
+.panel-escenario {
+  text-align: center;
+  padding-top: 26px;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 0%, var(--color-luz-escenario), transparent 75%),
+    url("../assets/imagenes/textura-ruido.svg"),
+    linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
+}
+
+/* Texto "ACORDE" / "NOTA" arriba del nombre */
+.tipo-deteccion {
+  font-family: var(--fuente-titulos);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--color-dorado);
+}
+
+/* Las notas que forman el acorde, como fichas redondas */
+/* Si la lista de notas está vacía (una nota sola), no ocupa espacio */
+.notas-del-acorde:empty {
+  display: none;
+}
+
+.notas-del-acorde {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 16px;
+  list-style: none;          /* sin viñetas (•) */
+}
+
+.notas-del-acorde li {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--color-dorado-oscuro);
+  background: var(--color-fondo);
+  font-weight: 700;
+}
+
+/* Historial de últimas notas: fichas en 2 columnas */
+.historial {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  list-style: none;
+}
+
+.historial li {
+  display: flex;
+  justify-content: space-between; /* nombre a la izquierda, tipo a la derecha */
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--color-dorado-oscuro);
+  border-radius: 10px;
+  background: var(--color-superficie);
+}
+
+/* ":first-child" = el primero de la lista (el más reciente): se destaca con borde dorado */
+.historial li:first-child {
+  border-color: var(--color-dorado);
+  background: var(--color-superficie-alta);
+}
+
+.historial-nombre {
+  font-weight: 700;
+}
+
+.historial-tipo {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+
+/* ==================== 9. PANTALLA DE CANCIONES ==================== */
+
+/* Los dos botones grandes, lado a lado */
+.fuentes-audio {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* dos columnas iguales */
+  gap: 14px;
+}
+
+/* Botón cuadrado grande: ícono arriba y texto abajo */
+.boton-cuadro {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  min-height: 132px;
+  padding: 18px 12px;
+  border: 2px solid var(--color-dorado-oscuro);
+  border-radius: var(--radio);
+  background:
+    url("../assets/imagenes/textura-ruido.svg"),
+    linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
+  font-family: var(--fuente-titulos);
+  font-size: 1.2rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  box-shadow: 0 8px 18px var(--color-sombra);
+  transition: transform var(--transicion), border-color var(--transicion);
+}
+
+/* Mientras graba: borde rojo y el botón REC latiendo */
+.boton-cuadro[aria-pressed="true"] {
+  border-color: var(--color-rojo);
+}
+
+.boton-cuadro[aria-pressed="true"] .rec {
+  animation: latido 1s ease-in-out infinite;
+}
+
+/* Texto de estado del análisis ("Analizando… 40%", errores, resultado) */
+.estado-analisis {
+  min-height: 1.45em;        /* reserva el espacio de una línea para que la pantalla no "salte" */
+  color: var(--color-texto-suave);
+  text-align: center;
+  text-wrap: balance;
+}
+
+/* Resumen de los acordes distintos que usa la canción */
+.resumen-acordes {
+  margin-bottom: 18px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.boton-cuadro:active {
+  transform: scale(0.97);
+  border-color: var(--color-dorado);
+}
+
+/* Botón REC: círculo rojo brillante dentro de un aro de metal cepillado */
+.rec {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--color-rojo-claro) 0 30%, var(--color-rojo) 48%, var(--color-rojo-oscuro) 58%, transparent 60%),
+    var(--metal-cepillado);
+  box-shadow: 0 0 18px var(--color-luz-roja), inset 0 -2px 4px var(--color-sombra);
+}
+
+/* Ícono de carpeta, del mismo tamaño que el botón REC */
+.icono-cuadro {
+  font-size: 56px;
+  color: var(--color-dorado);
+}
+
+/* Lista de acordes: grilla de 4 columnas, como un "setlist" */
+.lista-acordes {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  list-style: none;
+  counter-reset: orden;      /* crea un contador llamado "orden" que empieza en 0 */
+}
+
+/* Cada acorde: tarjeta con su número de orden arriba */
+.lista-acordes li {
+  counter-increment: orden;  /* suma 1 al contador en cada acorde */
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  padding: 26px 4px 12px;
+  position: relative;
+  border: 1px solid var(--color-dorado-oscuro);
+  border-radius: 10px;
+  background: var(--color-fondo);
+}
+
+/* El número de orden (1, 2, 3...) sale del contador, dentro de un circulito rojo */
+.lista-acordes li::before {
+  content: counter(orden);   /* escribe el valor actual del contador */
+  position: absolute;
+  top: -10px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--color-rojo);
+  color: var(--color-blanco);
+  font-size: 0.78rem;
+  font-weight: 700;
+  box-shadow: 0 0 0 2px var(--color-superficie);
+}
+
+.acorde-nombre {
+  font-family: var(--fuente-titulos);
+  font-size: 1.6rem;
+  line-height: 1;
+}
+
+/* Minuto en que empieza el acorde ("0:04") */
+.acorde-tiempo {
+  font-size: 0.72rem;
+  color: var(--color-texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.acorde-cifrado {
+  font-size: 0.8rem;
+  color: var(--color-texto-suave);
+}
+
+
+/* ==================== 10. ACCESIBILIDAD: MENOS MOVIMIENTO ==================== */
+
+/* Algunas personas activan en su teléfono "reducir movimiento" (por mareos,
+   por ejemplo). Si es así, quitamos las animaciones: los cambios pasan al instante. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;   /* "!important" = esta regla gana sí o sí */
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
