@@ -828,9 +828,12 @@ button:disabled {
 .vu-aguja {
   transform-origin: 150px 170px;           /* gira alrededor del eje (x=150, y=170 en el dibujo) */
   transform: rotate(var(--angulo, 0deg));  /* si no hay --angulo todavía, usa 0 grados (vertical) */
-  /* Al cambiar de ángulo se mueve con una curva que "se pasa" un poquito y vuelve,
-     como la inercia de una aguja real */
-  transition: transform 420ms cubic-bezier(0.34, 1.45, 0.64, 1);
+  /* Al cambiar de ángulo se desliza en 90 ms, frenando al final ("ease-out").
+     Antes era una curva de 420 ms que "se pasaba" y volvía: se veía linda, pero
+     la aguja llegaba tarde y, al pasarse, mostraba un instante una afinación que
+     no era. Ahora el suavizado lo hace js/musica.js (el "seguidor"), y la
+     animación solo une una lectura con la siguiente (llegan cada ~33 ms). */
+  transition: transform 90ms ease-out;
 }
 
 .vu-aguja line {

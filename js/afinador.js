@@ -29,10 +29,14 @@ const CUERDAS = [
 const CENTS_DE_EJEMPLO = -12;
 // Posición de descanso de la aguja cuando no suena nada (todo a la izquierda, como un medidor real)
 const CENTS_EN_REPOSO = -50;
-// Claridad mínima (de 0 a 1) para confiar en una lectura. Menos = ruido o varias notas a la vez
+// Claridad (de 0 a 1) para saber que una cuerda está sonando. Menos = ruido o
+// varias notas a la vez. Para MOVER la aguja se exige más: CLARIDAD_PARA_AFINAR
+// (0,97, está en musica.js con la explicación de cómo se midió).
 const CLARIDAD_MINIMA = 0.85;
-// Cuántas lecturas recientes usamos para suavizar (5 lecturas ≈ un cuarto de segundo)
-const LECTURAS_PARA_SUAVIZAR = 5;
+// Cada cuántos milisegundos analiza el afinador. Antes eran 50 (20 veces por segundo);
+// como ahora YIN usa la FFT y es unas 7 veces más rápido, podemos escuchar
+// ~30 veces por segundo sin cansar al teléfono, y la aguja reacciona antes.
+const AFINADOR_INTERVALO_MS = 30;
 // Si pasan estos milisegundos sin una nota clara, la aguja vuelve a su posición de descanso
 const ESPERA_SILENCIO_MS = 700;
 
@@ -40,7 +44,7 @@ const ESPERA_SILENCIO_MS = 700;
 
 let cuerdaElegida = 0;          // índice en CUERDAS (0 = la 6ª cuerda)
 let modoAutomatico = true;      // true = la app elige la cuerda; false = la eligió la persona
-let lecturasRecientes = [];     // últimas frecuencias detectadas, para suavizar
+const seguidor = crearSeguidorDeTono(); // suaviza las lecturas sin atrasarlas (está en musica.js)
 let ultimaNotaClara = 0;        // momento de la última lectura confiable (en milisegundos)
 
 // ===== 3. Elementos de la página =====
@@ -142,26 +146,18 @@ function cuerdaMasCercana(frecuencia) {
   return mejor;
 }
 
-// Devuelve la mediana (el valor del medio al ordenar). A diferencia del promedio,
-// una lectura rara (un "salto") no la afecta.
-function mediana(valores) {
-  const ordenados = [...valores].sort((a, b) => a - b);
-  return ordenados[Math.floor(ordenados.length / 2)];
-}
-
 // ===== 6. Escuchar =====
 
-// microfono.js llama a esta función unas 20 veces por segundo con lo que escuchó
+// microfono.js llama a esta función unas 30 veces por segundo con lo que escuchó
 function procesarSonidoAfinador({ volumen, tono }) {
   // La barra de "Señal" se llena según el volumen (variable CSS --nivel)
   nivelAfinador.style.setProperty("--nivel", nivelVisual(volumen) + "%");
   const ahora = performance.now(); // milisegundos desde que se abrió la página
 
-  if (tono && tono.claridad >= CLARIDAD_MINIMA) {
-    // Guardamos la lectura y usamos la mediana de las últimas para que la aguja no tiemble
-    lecturasRecientes.push(tono.frecuencia);
-    if (lecturasRecientes.length > LECTURAS_PARA_SUAVIZAR) lecturasRecientes.shift(); // quita la más vieja
-    const frecuencia = mediana(lecturasRecientes);
+  if (tono && tono.claridad >= CLARIDAD_PARA_AFINAR) {
+    // Lectura muy clara: la usamos. El seguidor quita el temblor y los errores
+    // sueltos, pero sigue rápido los cambios
+    const frecuencia = seguidor.agregar(tono.frecuencia);
     ultimaNotaClara = ahora;
 
     // En modo automático, la app elige la cuerda más cercana
@@ -172,9 +168,13 @@ function procesarSonidoAfinador({ volumen, tono }) {
     const cuerda = CUERDAS[cuerdaElegida];
     mostrarCuerda(cuerda, frecuencia);
     mostrarAfinacion(centsEntre(frecuencia, cuerda.frecuencia));
+  } else if (tono && tono.claridad >= CLARIDAD_MINIMA) {
+    // Suena una nota, pero no tan clara (ruido, o la cuerda ya se está apagando):
+    // la aguja se queda donde estaba en vez de saltar a un valor equivocado
+    ultimaNotaClara = ahora;
   } else if (ahora - ultimaNotaClara > ESPERA_SILENCIO_MS) {
-    // Hace rato que no suena nada claro: aguja en reposo
-    lecturasRecientes = [];
+    // Hace rato que no suena nada claro: aguja en reposo y seguidor vacío
+    seguidor.reiniciar();
     mostrarCuerda(CUERDAS[cuerdaElegida]);
     mostrarEspera();
   }
@@ -189,7 +189,7 @@ function prepararPantallaAfinador(escuchando) {
     ? "Toca una cuerda a la vez y déjala sonar. La barra de «Señal» muestra que el micrófono te escucha."
     : "La aguja y la lectura son de ejemplo. Enciende el micrófono para afinar de verdad.";
   nivelAfinador.style.setProperty("--nivel", "0%");
-  lecturasRecientes = [];
+  seguidor.reiniciar();
   if (escuchando) {
     modoAutomatico = true;
     mostrarEspera();
@@ -207,7 +207,7 @@ async function alternarMicrofonoAfinador() {
     return;
   }
   try {
-    await encenderMicrofono(procesarSonidoAfinador, () => prepararPantallaAfinador(false));
+    await encenderMicrofono(procesarSonidoAfinador, () => prepararPantallaAfinador(false), { intervaloMs: AFINADOR_INTERVALO_MS });
     prepararPantallaAfinador(true);
   } catch (error) {
     mostrarAviso(mensajeErrorMicrofono(error)); // mostrarAviso está en app.js

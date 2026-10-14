@@ -109,15 +109,8 @@ function detectarTono(muestras, frecuenciaMuestreo, { minimo = 65, maximo = 1400
   const ventana = muestras.length - tauMaximo; // cuántas muestras comparamos en cada prueba
 
   // Paso 1: diferencia entre la onda y su copia corrida "tau" muestras
-  const diferencia = new Float32Array(tauMaximo + 1);
-  for (let tau = 1; tau <= tauMaximo; tau++) {
-    let suma = 0;
-    for (let j = 0; j < ventana; j++) {
-      const resta = muestras[j] - muestras[j + tau];
-      suma += resta * resta;
-    }
-    diferencia[tau] = suma;
-  }
+  // (se calcula con la FFT, que es mucho más rápida; ver diferenciaYin más abajo)
+  const diferencia = diferenciaYin(muestras, tauMaximo, ventana);
 
   // Paso 2: "normalizar" la diferencia (dividirla por el promedio de las anteriores).
   // Así el valor no depende del volumen, y un buen candidato queda por debajo de 1.
@@ -152,6 +145,122 @@ function detectarTono(muestras, frecuenciaMuestreo, { minimo = 65, maximo = 1400
   }
 
   return { frecuencia: frecuenciaMuestreo / tauFino, claridad: 1 - normalizada[tauElegido] };
+}
+
+// Calcula la "diferencia" del paso 1 de YIN para cada corrimiento tau:
+//   diferencia[tau] = suma de (muestra[j] − muestra[j + tau])²   (j de 0 a ventana − 1)
+// Hacerlo "a mano" son ~2,5 millones de multiplicaciones cada vez (lento en un
+// teléfono). Truco matemático: al desarrollar el cuadrado (a − b)² = a² + b² − 2ab
+// queda en tres partes:
+//   1) la energía del primer trozo        (suma de a²)
+//   2) la energía del trozo corrido       (suma de b²)
+//   3) la "correlación" (suma de a × b)    → esta es la cara, y la FFT la calcula de una vez
+// El resultado es EXACTAMENTE el mismo número, pero unas 10 veces más rápido.
+function diferenciaYin(muestras, tauMaximo, ventana) {
+  // El largo de la FFT tiene que ser potencia de 2 (1024, 2048, 4096...) y alcanzar para todas las muestras
+  let n = 1;
+  while (n < muestras.length) n *= 2;
+
+  // Dos copias para la FFT: "a" = solo el primer trozo (el resto en cero) y "b" = toda la onda
+  const aRe = new Float64Array(n), aIm = new Float64Array(n);
+  const bRe = new Float64Array(n), bIm = new Float64Array(n);
+  for (let j = 0; j < ventana; j++) aRe[j] = muestras[j];
+  for (let j = 0; j < muestras.length; j++) bRe[j] = muestras[j];
+  fft(aRe, aIm); // ahora "a" y "b" están separadas en frecuencias
+  fft(bRe, bIm);
+
+  // Multiplicar "conjugado de A" por "B", frecuencia por frecuencia, es lo mismo que
+  // calcular la correlación en el tiempo (teorema de correlación). Guardamos el
+  // conjugado del producto, para usar la misma fft como FFT "inversa".
+  for (let k = 0; k < n; k++) {
+    const re = aRe[k] * bRe[k] + aIm[k] * bIm[k];
+    const im = aRe[k] * bIm[k] - aIm[k] * bRe[k];
+    aRe[k] = re;
+    aIm[k] = -im;
+  }
+  fft(aRe, aIm); // FFT inversa: la parte real dividida por n es la correlación
+
+  // Energías acumuladas: energiaHasta[k] = suma de muestra² de 0 a k − 1.
+  // Con ellas, la energía de cualquier trozo sale con UNA resta.
+  const energiaHasta = new Float64Array(muestras.length + 1);
+  for (let j = 0; j < muestras.length; j++) energiaHasta[j + 1] = energiaHasta[j] + muestras[j] * muestras[j];
+
+  // Juntamos las tres partes: a² + b² − 2ab
+  const diferencia = new Float64Array(tauMaximo + 1);
+  for (let tau = 1; tau <= tauMaximo; tau++) {
+    const energiaCorrida = energiaHasta[tau + ventana] - energiaHasta[tau];
+    const correlacion = aRe[tau] / n;
+    diferencia[tau] = Math.max(0, energiaHasta[ventana] + energiaCorrida - 2 * correlacion); // nunca negativa (redondeos)
+  }
+  return diferencia;
+}
+
+// ===== 3b. Seguir una nota en el tiempo (para el afinador) =====
+//
+// Cada lectura de YIN trae un pequeño "temblor" (por el ruido, el ataque de la
+// uñeta, etc.) y, muy de vez en cuando, un error grande (por ejemplo, una
+// octava). Si mostráramos cada lectura tal cual, la aguja temblaría. Pero si
+// suavizamos demasiado, la aguja llega TARDE. El "seguidor" busca las dos cosas:
+//   1) Mediana de las últimas 3 lecturas: borra un error suelto, y cuando
+//      cambias de cuerda, a la 2ª lectura nueva ya toma la nota nueva.
+//   2) Si la nota cambió mucho (otra cuerda), salta directo a la nota nueva.
+//   3) Si cambió poco, se mueve según cuánto cambió: un cambio grande (giraste
+//      la clavija) lo sigue entero; un cambio chiquito (temblor) lo sigue solo
+//      un poco. Así la aguja queda quieta cuando la nota está quieta, y rápida
+//      cuando la nota se mueve.
+// Los números de abajo se eligieron MIDIENDO muchas combinaciones con
+// scripts/medir-afinador.js (la más rápida que no pierde precisión).
+const SEGUIDOR_LECTURAS = 3;         // cuántas lecturas entran en la mediana
+const SEGUIDOR_SALTO_CENTS = 50;     // más de medio semitono de diferencia = otra nota
+const SEGUIDOR_TEMBLOR_CENTS = 1.5;  // cambios menores a esto se toman como temblor y se suavizan
+const SEGUIDOR_PESO_MINIMO = 0.4;    // con un temblor muy chico, avanza solo un 40 % hacia la lectura
+
+// Claridad mínima para que una lectura MUEVA la aguja del afinador.
+// Medido con scripts/medir-afinador.js: las lecturas con claridad 0,85–0,90 se
+// equivocan por ~20 cents (y a veces por una octava entera), y las de 0,97 o más,
+// por menos de 1,5 cents. Con ruido de fondo, exigir 0,97 bajó el error máximo
+// de la aguja de 49 a ~5 cents. Las lecturas menos claras igual sirven para
+// saber que la cuerda sigue sonando (la aguja se queda quieta, no vuelve al reposo).
+const CLARIDAD_PARA_AFINAR = 0.97;
+
+// Devuelve la mediana: el valor del medio al ordenar (si hay dos "del medio",
+// su promedio). A diferencia del promedio común, una lectura rara no la afecta.
+function mediana(valores) {
+  const ordenados = [...valores].sort((a, b) => a - b);
+  const mitad = Math.floor(ordenados.length / 2);
+  return ordenados.length % 2 === 1 ? ordenados[mitad] : (ordenados[mitad - 1] + ordenados[mitad]) / 2;
+}
+
+// Crea un seguidor nuevo. Devuelve un objeto con dos funciones:
+//   agregar(frecuencia) → recibe una lectura y devuelve la frecuencia que hay que mostrar
+//   reiniciar()         → lo deja vacío (cuando hubo silencio)
+function crearSeguidorDeTono() {
+  let recientes = [];   // últimas lecturas, en cents medidos desde La4 (440 Hz)
+  let estimado = null;  // lo que se está mostrando, también en cents (null = nada todavía)
+
+  return {
+    agregar(frecuencia) {
+      // Trabajamos en cents (escala logarítmica): así "4 cents" significa lo mismo
+      // en la cuerda más grave y en la más aguda
+      recientes.push(centsEntre(frecuencia, FRECUENCIA_LA4));
+      if (recientes.length > SEGUIDOR_LECTURAS) recientes.shift(); // quita la más vieja
+      const medio = mediana(recientes);
+
+      const cambio = estimado === null ? Infinity : Math.abs(medio - estimado);
+      if (cambio > SEGUIDOR_SALTO_CENTS) {
+        estimado = medio; // primera lectura u otra cuerda: salta directo, sin demora
+      } else {
+        // El "peso" va de 0,4 (temblor chico) a 1 (cambio de 1,5 cents o más)
+        const peso = Math.min(1, Math.max(SEGUIDOR_PESO_MINIMO, cambio / SEGUIDOR_TEMBLOR_CENTS));
+        estimado += peso * (medio - estimado); // avanza esa parte del camino hacia la lectura
+      }
+      return FRECUENCIA_LA4 * Math.pow(2, estimado / 1200); // de cents de vuelta a Hz
+    },
+    reiniciar() {
+      recientes = [];
+      estimado = null;
+    },
+  };
 }
 
 // ===== 4. Separar un sonido en frecuencias: FFT =====
@@ -342,7 +451,7 @@ function resumirAcordes(ventanas, duracionVentana, { minimoSegundos = 0.9 } = {}
 // En el navegador "module" no existe, así que esta línea no hace nada allí.
 if (typeof module !== "undefined") {
   module.exports = {
-    NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, formatearHz, calcularVolumen, frecuenciaANota, centsEntre,
-    detectarTono, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, resumirAcordes,
+    NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, centsEntre,
+    detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, resumirAcordes,
   };
 }

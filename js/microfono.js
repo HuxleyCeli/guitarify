@@ -1,8 +1,9 @@
 // microfono.js
 // ------------
 // Maneja el MICRÓFONO del teléfono, compartido por las 3 funciones de la app.
-//   - encenderMicrofono(alRecibirSonido, alApagar): pide permiso, empieza a
-//     escuchar y, unas 20 veces por segundo, entrega lo que oye.
+//   - encenderMicrofono(alRecibirSonido, alApagar, { intervaloMs }): pide permiso,
+//     empieza a escuchar y, cada "intervaloMs" milisegundos (50 si no se dice
+//     otra cosa = 20 veces por segundo), entrega lo que oye.
 //   - apagarMicrofono(): deja de escuchar (se llama también al cambiar de pantalla).
 // Solo una pantalla puede usar el micrófono a la vez.
 //
@@ -12,7 +13,8 @@
 
 "use strict";
 
-// Cada cuántos milisegundos analizamos el sonido (50 ms = 20 veces por segundo)
+// Cada cuántos milisegundos analizamos el sonido si la pantalla no pide otra cosa
+// (50 ms = 20 veces por segundo). El afinador pide más seguido para reaccionar antes.
 const MIC_INTERVALO_MS = 50;
 
 // Estado del micrófono (null = apagado)
@@ -26,6 +28,7 @@ let micAlRecibir = null;      // función de la pantalla que recibe cada anális
 let micAlApagar = null;       // función de la pantalla que se avisa cuando se apaga
 let micAnimacion = null;      // número del "ciclo" de análisis, para poder detenerlo
 let micUltimoAnalisis = 0;    // momento del último análisis (en milisegundos)
+let micIntervalo = MIC_INTERVALO_MS; // cada cuántos milisegundos analizar (lo elige la pantalla)
 
 // ¿Está encendido el micrófono ahora?
 function micEstaEncendido() {
@@ -34,7 +37,8 @@ function micEstaEncendido() {
 
 // Enciende el micrófono. Es "async" porque hay que ESPERAR a que la persona dé permiso.
 // Devuelve el flujo de audio (la pantalla de Canciones lo usa para grabar).
-async function encenderMicrofono(alRecibirSonido, alApagar) {
+// "{ intervaloMs = MIC_INTERVALO_MS } = {}" = una opción que se puede dar o no; si no se da, vale 50.
+async function encenderMicrofono(alRecibirSonido, alApagar, { intervaloMs = MIC_INTERVALO_MS } = {}) {
   // El micrófono solo funciona en páginas seguras (https o localhost): regla de los navegadores
   if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     const error = new Error("Página no segura");
@@ -76,6 +80,7 @@ async function encenderMicrofono(alRecibirSonido, alApagar) {
   micFlujo = flujo;
   micAlRecibir = alRecibirSonido;
   micAlApagar = alApagar;
+  micIntervalo = intervaloMs;
   micUltimoAnalisis = 0;
   // requestAnimationFrame = "ejecuta esto en el próximo cuadro de pantalla" (unas 60 veces por segundo)
   micAnimacion = requestAnimationFrame(micCiclo);
@@ -85,7 +90,7 @@ async function encenderMicrofono(alRecibirSonido, alApagar) {
 // El ciclo de análisis: se repite mientras el micrófono esté encendido
 function micCiclo(tiempo) {
   micAnimacion = requestAnimationFrame(micCiclo);          // agenda la próxima vuelta
-  if (tiempo - micUltimoAnalisis < MIC_INTERVALO_MS) return; // todavía no toca analizar
+  if (tiempo - micUltimoAnalisis < micIntervalo) return; // todavía no toca analizar
   micUltimoAnalisis = tiempo;
 
   micAnalizadorOnda.getFloatTimeDomainData(micBufferOnda); // copia la onda actual
