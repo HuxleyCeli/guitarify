@@ -45,6 +45,7 @@ const ESPERA_SILENCIO_MS = 700;
 let cuerdaElegida = 0;          // índice en CUERDAS (0 = la 6ª cuerda)
 let modoAutomatico = true;      // true = la app elige la cuerda; false = la eligió la persona
 const seguidor = crearSeguidorDeTono(); // suaviza las lecturas sin atrasarlas (está en musica.js)
+const detectorRuido = crearDetectorDeRuido(); // se da cuenta si hay mucho ruido (está en musica.js)
 let ultimaNotaClara = 0;        // momento de la última lectura confiable (en milisegundos)
 
 // ===== 3. Elementos de la página =====
@@ -104,6 +105,14 @@ function mostrarEspera() {
   textoEstado.textContent = "Toca una cuerda al aire, cerca del teléfono";
 }
 
+// Deja la aguja en reposo y explica que hay sonido, pero no se distingue una cuerda.
+// Pasa con ruido (voces, ventilador, tele) y también si suenan varias cuerdas a la vez.
+function mostrarRuido() {
+  moverAguja(CENTS_EN_REPOSO);
+  textoEstado.dataset.estado = "ruido";
+  textoEstado.textContent = "Hay mucho ruido: toca una sola cuerda, cerca del teléfono";
+}
+
 // Actualiza el texto que explica el modo (automático o manual)
 function mostrarModo() {
   if (!micEstaEncendido()) {
@@ -154,6 +163,13 @@ function procesarSonidoAfinador({ volumen, tono }) {
   nivelAfinador.style.setProperty("--nivel", nivelVisual(volumen) + "%");
   const ahora = performance.now(); // milisegundos desde que se abrió la página
 
+  // Le contamos al detector de ruido qué pasó en este análisis:
+  // suena una nota → "claro"; hay sonido pero ninguna nota → "confuso"; si no → "silencio"
+  let tipo = "silencio";
+  if (tono && tono.claridad >= CLARIDAD_MINIMA) tipo = "claro";
+  else if (volumen >= UMBRAL_SILENCIO) tipo = "confuso";
+  const hayRuido = detectorRuido.agregar(tipo, ahora);
+
   if (tono && tono.claridad >= CLARIDAD_PARA_AFINAR) {
     // Lectura muy clara: la usamos. El seguidor quita el temblor y los errores
     // sueltos, pero sigue rápido los cambios
@@ -173,10 +189,12 @@ function procesarSonidoAfinador({ volumen, tono }) {
     // la aguja se queda donde estaba en vez de saltar a un valor equivocado
     ultimaNotaClara = ahora;
   } else if (ahora - ultimaNotaClara > ESPERA_SILENCIO_MS) {
-    // Hace rato que no suena nada claro: aguja en reposo y seguidor vacío
+    // Hace rato que no suena nada claro: aguja en reposo y seguidor vacío.
+    // Si además hay mucho ruido, lo decimos (así la persona sabe por qué no marca nada)
     seguidor.reiniciar();
     mostrarCuerda(CUERDAS[cuerdaElegida]);
-    mostrarEspera();
+    if (hayRuido) mostrarRuido();
+    else mostrarEspera();
   }
 }
 
@@ -190,6 +208,7 @@ function prepararPantallaAfinador(escuchando) {
     : "La aguja y la lectura son de ejemplo. Enciende el micrófono para afinar de verdad.";
   nivelAfinador.style.setProperty("--nivel", "0%");
   seguidor.reiniciar();
+  detectorRuido.reiniciar();
   if (escuchando) {
     modoAutomatico = true;
     mostrarEspera();

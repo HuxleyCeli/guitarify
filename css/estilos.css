@@ -943,6 +943,27 @@ button:disabled {
   color: var(--color-dorado-claro);
 }
 
+/* Hay mucho ruido: fondo rojizo con texto blanco (el rojo NO se usa como color
+   de texto chico sobre fondo oscuro, porque no se lee bien) */
+.estado-afinacion[data-estado="ruido"] {
+  border-color: var(--color-rojo);
+  background: var(--color-luz-roja);
+  color: var(--color-blanco);
+}
+
+/* El mismo aviso de ruido, en la pantalla de Notas y acordes */
+.aviso-ruido {
+  margin: 12px auto 0;
+  max-width: 30ch;                 /* "ch" = ancho de un carácter: así el texto no queda en una línea larguísima */
+  padding: 8px 14px;
+  border: 1px solid var(--color-rojo);
+  border-radius: 14px;
+  background: var(--color-luz-roja);
+  color: var(--color-blanco);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
 /* --- 7d. Las 6 cuerdas (uñetas creadas por js/afinador.js) --- */
 .cuerdas {
   display: grid;

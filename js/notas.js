@@ -12,6 +12,9 @@
 
 // Claridad mínima para decir que es UNA nota (medido en pruebas: una nota da ~1,0 y un acorde, nada)
 const NOTAS_CLARIDAD_NOTA = 0.9;
+// Con menos claridad no la mostramos, pero desde 0,85 igual sabemos que SUENA una nota
+// (por ejemplo, una cuerda que se está apagando): eso no cuenta como ruido
+const NOTAS_CLARIDAD_SUENA = 0.85;
 // Cuántas lecturas IGUALES seguidas hacen falta para mostrar algo (4 × 50 ms = 0,2 segundos).
 // Así no aparecen en pantalla los "saltos" de un instante.
 const NOTAS_LECTURAS_ESTABLES = 4;
@@ -24,6 +27,7 @@ let notasCandidata = null;   // lo último que se detectó (todavía sin confirm
 let notasRepeticiones = 0;   // cuántas veces seguidas se detectó
 let notasMostrada = null;    // lo que está en pantalla ahora
 let notasHistorial = [];     // lista de lo reconocido, la más reciente primero
+const notasDetectorRuido = crearDetectorDeRuido(); // avisa si hay mucho ruido (está en musica.js)
 
 // ===== 3. Elementos de la página =====
 
@@ -37,6 +41,7 @@ const notasListaHistorial = document.getElementById("notas-historial");
 const notasVacio = document.getElementById("notas-vacio");
 const notasDiagrama = document.getElementById("notas-diagrama");             // la caja "Cómo se toca"
 const notasDiagramaDibujo = document.getElementById("notas-diagrama-dibujo"); // donde va el dibujo
+const notasRuido = document.getElementById("notas-ruido");                   // el aviso "Hay mucho ruido"
 
 // ===== 4. Reconocer =====
 
@@ -70,13 +75,19 @@ function reconocerSonido(tono, obtenerCroma) {
 // microfono.js llama a esta función unas 20 veces por segundo
 function procesarSonidoNotas({ volumen, tono, obtenerCroma }) {
   notasNivel.style.setProperty("--nivel", nivelVisual(volumen) + "%");
+  const ahora = performance.now(); // milisegundos desde que se abrió la página
   if (volumen < UMBRAL_SILENCIO) {
     notasCandidata = null; // silencio: reiniciamos la cuenta, pero dejamos en pantalla lo último
     notasRepeticiones = 0;
+    notasRuido.hidden = !notasDetectorRuido.agregar("silencio", ahora);
     return;
   }
 
   const deteccion = reconocerSonido(tono, obtenerCroma);
+  // Para el detector de ruido: ¿se reconoció algo, o al menos suena una nota?
+  const suenaAlgo = deteccion || (tono && tono.claridad >= NOTAS_CLARIDAD_SUENA);
+  // El aviso se muestra solo si el detector dice que hay mucho ruido ("hidden" = oculto)
+  notasRuido.hidden = !notasDetectorRuido.agregar(suenaAlgo ? "claro" : "confuso", ahora);
   // ¿Es lo mismo que la vez anterior? Entonces sumamos una repetición; si no, empezamos de nuevo
   if (deteccion && notasCandidata && deteccion.clave === notasCandidata.clave) {
     notasRepeticiones++;
@@ -146,6 +157,8 @@ function prepararPantallaNotas(escuchando) {
   notasNivel.style.setProperty("--nivel", "0%");
   notasCandidata = null;
   notasRepeticiones = 0;
+  notasDetectorRuido.reiniciar(); // empieza a contar de cero
+  notasRuido.hidden = true;       // y sin aviso de ruido
   if (escuchando && !notasMostrada) {
     notasTipo.textContent = "Escuchando";
     notasDetalle.textContent = "Toca una nota o un acorde y déjalo sonar.";

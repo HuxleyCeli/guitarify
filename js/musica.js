@@ -263,6 +263,45 @@ function crearSeguidorDeTono() {
   };
 }
 
+// ===== 3c. Darse cuenta de que hay mucho RUIDO =====
+//
+// En las pruebas, P1 dijo: «con el ruido se confunde y no detecta siempre».
+// La app no mostraba nada y la persona no sabía por qué. Ahora, si durante el
+// último segundo casi siempre hubo SONIDO pero NUNCA una nota (o acorde) que se
+// pudiera reconocer, la app avisa que hay mucho ruido.
+// Cada pantalla le cuenta al detector qué pasó en cada análisis, con una palabra:
+//   "silencio" → no suena nada (volumen bajo)
+//   "claro"    → suena algo reconocible: un acorde, o una nota (aunque sea débil,
+//                 con claridad 0,85 o más: por ejemplo, una cuerda que se está apagando)
+//   "confuso"  → hay sonido, pero no se reconoce nada (ruido, voces, varias cuerdas a la vez...)
+const RUIDO_VENTANA_MS = 1200;          // mira lo que pasó en los últimos 1,2 segundos
+const RUIDO_HISTORIA_MINIMA_MS = 800;   // necesita al menos 0,8 s de historia para decidir
+const RUIDO_PROPORCION_CONFUSA = 0.6;   // avisa si el 60 % o más de los análisis fueron "confuso"
+
+function crearDetectorDeRuido() {
+  let registro = []; // lista de { tiempo, tipo } de los análisis recientes
+
+  return {
+    // Recibe el tipo del análisis y el momento (en milisegundos).
+    // Devuelve true si hay que avisar que hay mucho ruido.
+    agregar(tipo, tiempo) {
+      registro.push({ tiempo, tipo });
+      // Borramos lo que ya quedó fuera de la ventana de 1,2 segundos
+      while (tiempo - registro[0].tiempo > RUIDO_VENTANA_MS) registro.shift();
+      // Con muy poca historia todavía no podemos saber (por ejemplo, el golpe de la uñeta)
+      if (tiempo - registro[0].tiempo < RUIDO_HISTORIA_MINIMA_MS) return false;
+      // Si en este tiempo se reconoció algo aunque sea una vez, no es "mucho ruido"
+      if (registro.some((analisis) => analisis.tipo === "claro")) return false;
+      // ¿Qué parte de los análisis fue "confuso"?
+      const confusos = registro.filter((analisis) => analisis.tipo === "confuso").length;
+      return confusos / registro.length >= RUIDO_PROPORCION_CONFUSA;
+    },
+    reiniciar() {
+      registro = [];
+    },
+  };
+}
+
 // ===== 4. Separar un sonido en frecuencias: FFT =====
 //
 // La "Transformada Rápida de Fourier" (FFT) toma un trozo de onda y dice cuánto
@@ -452,6 +491,6 @@ function resumirAcordes(ventanas, duracionVentana, { minimoSegundos = 0.9 } = {}
 if (typeof module !== "undefined") {
   module.exports = {
     NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, centsEntre,
-    detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, resumirAcordes,
+    detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, resumirAcordes,
   };
 }
