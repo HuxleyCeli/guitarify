@@ -145,7 +145,9 @@ function mostrarAcordes(acordes) {
     const tiempo = document.createElement("span");
     tiempo.className = "acorde-tiempo";
     tiempo.textContent = formatearTiempo(acorde.inicio); // "0:04": cuándo empieza
-    fila.append(nombre, cifrado, tiempo);
+    // Diagrama chico de cómo se toca (función de diagramas.js), entre el nombre y el minuto
+    const diagrama = dibujarDiagramaAcorde(acorde.corto, { ancho: 60, mini: true });
+    fila.append(nombre, cifrado, diagrama, tiempo);
     fila.title = acorde.completo;                // al mantener el dedo o el mouse: "La menor"
     listaAcordes.append(fila);
   }

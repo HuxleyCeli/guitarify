@@ -21,7 +21,7 @@
 
 // Nombre de la caché. Si algún día cambias la LISTA de archivos de abajo, sube el
 // número (v2, v3...) para que el navegador borre la caché vieja y cree una nueva.
-const VERSION = "guitarify-v1";
+const VERSION = "guitarify-v2"; // v2: se agregó js/diagramas.js
 
 // Todos los archivos que necesita la app para funcionar sin internet
 const ARCHIVOS_APP = [
@@ -32,6 +32,7 @@ const ARCHIVOS_APP = [
   "./js/musica.js",
   "./js/microfono.js",
   "./js/medidor.js",
+  "./js/diagramas.js",
   "./js/afinador.js",
   "./js/notas.js",
   "./js/canciones.js",

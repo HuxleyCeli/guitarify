@@ -316,6 +316,13 @@
           <p id="notas-detalle" class="nota-detalle">Toca «Empezar a escuchar» y luego una nota o un acorde.</p>
           <!-- Las notas que forman el acorde (vacía si es una nota sola) -->
           <ul id="notas-del-acorde" class="notas-del-acorde" aria-label="Notas del acorde"></ul>
+          <!-- Diagrama de cómo se toca el acorde. Solo aparece cuando se reconoce un acorde
+               (con una nota sola queda oculto). js/notas.js dibuja el diagrama adentro -->
+          <div id="notas-diagrama" class="diagrama-caja" hidden>
+            <p class="diagrama-titulo">Cómo se toca</p>
+            <div id="notas-diagrama-dibujo"></div>
+            <p class="diagrama-ayuda">Números = dedos: 1 índice · 2 medio · 3 anular · 4 meñique</p>
+          </div>
         </div>
         <!-- Barra de "Señal": muestra que el micrófono está escuchando -->
         <div class="nivel" aria-hidden="true">
@@ -402,6 +409,7 @@
   <script src="./js/musica.js"></script>
   <script src="./js/microfono.js"></script>
   <script src="./js/medidor.js"></script>
+  <script src="./js/diagramas.js"></script>
   <script src="./js/afinador.js"></script>
   <script src="./js/notas.js"></script>
   <script src="./js/canciones.js"></script>

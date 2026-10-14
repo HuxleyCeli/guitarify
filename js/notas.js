@@ -35,6 +35,8 @@ const notasNivel = document.getElementById("notas-nivel");
 const notasBoton = document.getElementById("notas-mic");
 const notasListaHistorial = document.getElementById("notas-historial");
 const notasVacio = document.getElementById("notas-vacio");
+const notasDiagrama = document.getElementById("notas-diagrama");             // la caja "Cómo se toca"
+const notasDiagramaDibujo = document.getElementById("notas-diagrama-dibujo"); // donde va el dibujo
 
 // ===== 4. Reconocer =====
 
@@ -106,6 +108,11 @@ function mostrarDeteccion(deteccion) {
     ficha.textContent = nota;
     notasDelAcorde.append(ficha);
   }
+  // Si es un acorde, mostramos cómo se toca (función de diagramas.js); si es una nota sola, lo ocultamos
+  const esAcorde = deteccion.tipo === "Acorde";
+  notasDiagrama.hidden = !esAcorde;
+  notasDiagramaDibujo.replaceChildren(); // borra el dibujo anterior
+  if (esAcorde) notasDiagramaDibujo.append(dibujarDiagramaAcorde(deteccion.clave));
 }
 
 // Agrega al principio del historial (si no es igual a lo último) y lo redibuja

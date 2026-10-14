@@ -1064,6 +1064,99 @@ button:disabled {
 }
 
 
+/* --- 8b. Diagramas de acordes (los dibuja js/diagramas.js) ---
+   Se usan aquí (grande, "Cómo se toca") y en las tarjetas de Canciones (chicos). */
+
+/* La caja "Cómo se toca": título, dibujo y ayuda, uno debajo del otro y centrados */
+.diagrama-caja {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  margin-top: 18px;
+}
+
+.diagrama-titulo {
+  font-family: var(--fuente-titulos);
+  font-size: 0.85rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--color-dorado);
+}
+
+/* Explicación de los números de dedo */
+.diagrama-ayuda {
+  font-size: 0.72rem;
+  color: var(--color-texto-suave);
+  text-align: center;
+}
+
+.diagrama {
+  display: block;
+  overflow: visible;         /* deja asomar ○ y × por arriba del dibujo */
+}
+
+/* Cuerdas: metálicas */
+.diagrama-cuerda {
+  stroke: var(--color-metal-claro);
+}
+
+/* Trastes: dorados */
+.diagrama-traste {
+  stroke: var(--color-dorado-oscuro);
+  stroke-width: 1.5;
+}
+
+/* Cejuela (barra gruesa del principio del mástil): crema, como el hueso de una guitarra */
+.diagrama-cejuela {
+  fill: var(--color-crema);
+}
+
+/* Dedos y cejilla: rojos con borde dorado, igual que las uñetas */
+.diagrama-dedo,
+.diagrama-cejilla {
+  fill: var(--color-rojo);
+  stroke: var(--color-dorado-claro);
+  stroke-width: 1.2;
+}
+
+/* Número de dedo, centrado dentro del círculo rojo */
+.diagrama-dedo-numero {
+  fill: var(--color-blanco);
+  font: 700 10px var(--fuente-texto);
+  text-anchor: middle;              /* centrado horizontal */
+  dominant-baseline: central;       /* centrado vertical */
+}
+
+/* ○ y × arriba de las cuerdas */
+.diagrama-marca {
+  fill: var(--color-texto-suave);
+  font: 700 10px var(--fuente-texto);
+  text-anchor: middle;
+}
+
+/* En la versión chica, ○ y × más pequeños */
+.diagrama-mini .diagrama-marca {
+  font-size: 7px;
+}
+
+/* Número de traste a la izquierda (cuando el acorde se toca más arriba en el mástil) */
+.diagrama-numero-traste {
+  fill: var(--color-texto-suave);
+  font: 600 10px var(--fuente-texto);
+  text-anchor: end;                 /* alineado a la derecha, pegado al dibujo */
+  dominant-baseline: central;
+}
+
+.diagrama-mini .diagrama-numero-traste {
+  font-size: 7px;
+}
+
+/* En las tarjetas de Canciones, un poco de aire arriba del diagrama chico */
+.lista-acordes .diagrama {
+  margin-top: 6px;
+}
+
+
 /* ==================== 9. PANTALLA DE CANCIONES ==================== */
 
 /* Los dos botones grandes, lado a lado */
