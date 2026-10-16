@@ -1,7 +1,8 @@
 // afinador.js
 // -----------
 // La pantalla del AFINADOR.
-//   - Crea las 6 uñetas de las cuerdas a partir de una lista de datos.
+//   - Tiene un menú de AFINACIONES (Estándar, Drop D...) y recuerda la última elegida.
+//   - Crea las 6 uñetas de las cuerdas a partir de la afinación elegida.
 //   - Con el micrófono APAGADO muestra una afinación de EJEMPLO (con el sello "Ejemplo").
 //   - Con el micrófono ENCENDIDO escucha la guitarra, reconoce qué cuerda suena
 //     (modo automático) y mueve la aguja según qué tan afinada está.
@@ -10,20 +11,16 @@
 
 "use strict";
 
-// ===== 1. Datos: afinación estándar de la guitarra =====
+// ===== 1. Datos: la afinación elegida =====
 
-// Una lista (array) con un objeto por cuerda, de la 6ª (la más gruesa) a la 1ª (la más fina).
-// Tener los datos en UN solo lugar se llama "una sola fuente de verdad": los
-// botones, los textos y el cálculo de afinación salen todos de aquí.
-// La frecuencia (Hz = vibraciones por segundo) es la que debe sonar cada cuerda al aire.
-const CUERDAS = [
-  { numero: 6, nota: "Mi", ingles: "E2", frecuencia: 82.41 },
-  { numero: 5, nota: "La", ingles: "A2", frecuencia: 110.0 },
-  { numero: 4, nota: "Re", ingles: "D3", frecuencia: 146.83 },
-  { numero: 3, nota: "Sol", ingles: "G3", frecuencia: 196.0 },
-  { numero: 2, nota: "Si", ingles: "B3", frecuencia: 246.94 },
-  { numero: 1, nota: "Mi", ingles: "E4", frecuencia: 329.63 },
-];
+// Las afinaciones (AFINACIONES) y la función que arma sus cuerdas (cuerdasDeAfinacion)
+// están en musica.js: son teoría musical pura, y así las pruebas también las pueden usar.
+
+// La afinación que se está usando y sus cuerdas ("let" porque cambian al elegir otra)
+let afinacionActual = AFINACIONES[0];
+let CUERDAS = cuerdasDeAfinacion(afinacionActual);
+// Nombre con el que el navegador recuerda la última afinación elegida (localStorage)
+const CLAVE_AFINACION_GUARDADA = "guitarify-afinacion";
 
 // Valor de EJEMPLO que muestra el medidor mientras el micrófono está apagado
 const CENTS_DE_EJEMPLO = -12;
@@ -60,6 +57,7 @@ const textoModo = document.getElementById("afinador-modo");
 const botonAutomatico = document.getElementById("afinador-auto");
 const botonMicAfinador = document.getElementById("afinador-mic");
 const ayudaAfinador = document.getElementById("afinador-ayuda");
+const menuAfinacion = document.getElementById("afinador-afinacion"); // el menú para elegir la afinación
 
 // ===== 4. Textos =====
 
@@ -236,6 +234,7 @@ async function alternarMicrofonoAfinador() {
 // ===== 7. Crear las 6 uñetas de las cuerdas =====
 
 function crearBotonesDeCuerdas() {
+  contenedorCuerdas.replaceChildren(); // borra las uñetas anteriores (si cambió la afinación)
   CUERDAS.forEach((cuerda, indice) => {
     // Creamos un <button> nuevo "en el aire" (todavía no está en la página)
     const boton = document.createElement("button");
@@ -259,9 +258,51 @@ function crearBotonesDeCuerdas() {
   });
 }
 
-// ===== 8. Arranque =====
+// ===== 8. Elegir la afinación =====
 
-crearBotonesDeCuerdas();
+// Llena el menú con una opción por afinación (salen de la lista AFINACIONES)
+function crearMenuDeAfinaciones() {
+  for (const afinacion of AFINACIONES) {
+    const opcion = document.createElement("option");
+    opcion.value = afinacion.id;             // lo que usa el código: "drop-d"
+    opcion.textContent = afinacion.nombre;   // lo que ve la persona: "Drop D"
+    menuAfinacion.append(opcion);
+  }
+}
+
+// Cambia a la afinación "id": arma sus cuerdas, redibuja las uñetas y la recuerda
+function cambiarAfinacion(id) {
+  // "find" busca en la lista la primera afinación con ese id (si no existe, usamos la estándar)
+  afinacionActual = AFINACIONES.find((afinacion) => afinacion.id === id) || AFINACIONES[0];
+  CUERDAS = cuerdasDeAfinacion(afinacionActual);
+  menuAfinacion.value = afinacionActual.id;
+  crearBotonesDeCuerdas();
+  seguidor.reiniciar();      // las lecturas anteriores eran de otras cuerdas
+  elegirCuerda(cuerdaElegida); // marca otra vez la cuerda elegida, ahora con su nota nueva
+  mostrarModo();             // en modo manual, el texto dice la nota nueva
+  // Guardamos la elección en el navegador para la próxima vez. "try" porque en
+  // algunos casos (modo privado, archivo abierto con doble clic) el navegador no deja guardar
+  try {
+    localStorage.setItem(CLAVE_AFINACION_GUARDADA, afinacionActual.id);
+  } catch {
+    // si no se puede guardar, no pasa nada: la próxima vez empieza en Estándar
+  }
+}
+
+// Lee la afinación que se eligió la última vez (o null si no hay ninguna guardada)
+function afinacionGuardada() {
+  try {
+    return localStorage.getItem(CLAVE_AFINACION_GUARDADA);
+  } catch {
+    return null;
+  }
+}
+
+// ===== 9. Arranque =====
+
+crearMenuDeAfinaciones();
+cambiarAfinacion(afinacionGuardada()); // crea las uñetas de la última afinación usada (o Estándar)
+menuAfinacion.addEventListener("change", () => cambiarAfinacion(menuAfinacion.value));
 botonMicAfinador.addEventListener("click", alternarMicrofonoAfinador);
 botonAutomatico.addEventListener("click", () => {
   modoAutomatico = true;

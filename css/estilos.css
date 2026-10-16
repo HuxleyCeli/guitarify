@@ -964,6 +964,64 @@ button:disabled {
   line-height: 1.4;
 }
 
+/* --- 7c2. Menú de afinación (Estándar, Drop D...) --- */
+/* La etiqueta "AFINACIÓN" a la izquierda y el menú a la derecha, en una sola fila */
+.afinacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.afinacion-etiqueta {
+  font-family: var(--fuente-titulos);
+  font-size: 0.85rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-dorado);
+}
+
+/* Caja del menú: la usamos para dibujar la flechita "▾", porque un <select> no
+   admite ::after. "position: relative" deja ubicar la flecha dentro de la caja */
+.afinacion-caja {
+  position: relative;
+}
+
+.afinacion-caja::after {
+  content: "▾";
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--color-dorado);
+  pointer-events: none; /* la flecha no "tapa" el toque: el toque llega al menú */
+}
+
+/* El menú en sí: forma de píldora con borde dorado, como una perilla de amplificador */
+.afinacion-menu {
+  appearance: none;         /* quita el estilo propio del sistema para poner el nuestro */
+  min-height: 44px;         /* alto mínimo cómodo para el dedo */
+  padding: 8px 42px 8px 18px;
+  border: 1px solid var(--color-dorado-oscuro);
+  border-radius: 999px;
+  background: var(--color-superficie);
+  color: var(--color-blanco);
+  font: 600 1rem var(--fuente-texto);
+  cursor: pointer;
+}
+
+.afinacion-menu:focus-visible {
+  outline: 2px solid var(--color-dorado);
+  outline-offset: 2px;
+}
+
+/* Las opciones de la lista desplegada (en computadores; el teléfono usa su propia ruedita) */
+.afinacion-menu option {
+  background: var(--color-superficie);
+  color: var(--color-blanco);
+}
+
 /* --- 7d. Las 6 cuerdas (uñetas creadas por js/afinador.js) --- */
 .cuerdas {
   display: grid;

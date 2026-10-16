@@ -277,6 +277,15 @@
       <!-- Selector de cuerdas -->
       <section class="bloque" aria-labelledby="titulo-cuerdas">
         <h2 id="titulo-cuerdas" class="subtitulo">Elige una cuerda</h2>
+        <!-- Menú para elegir la afinación (Estándar, Drop D...). Está vacío: js/afinador.js
+             le pone las opciones a partir de la lista AFINACIONES. Usamos un <select>
+             (menú desplegable) porque en el teléfono abre la "ruedita" propia del sistema -->
+        <label class="afinacion" for="afinador-afinacion">
+          <span class="afinacion-etiqueta">Afinación</span>
+          <span class="afinacion-caja">
+            <select id="afinador-afinacion" class="afinacion-menu"></select>
+          </span>
+        </label>
         <!-- Contenedor vacío: js/afinador.js crea aquí las 6 uñetas (Mi La Re Sol Si Mi) a partir de una lista de datos -->
         <div id="cuerdas" class="cuerdas"></div>
         <!-- Explica el modo: automático (la app reconoce la cuerda sola) o manual (la eliges tú) -->

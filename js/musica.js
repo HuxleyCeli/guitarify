@@ -25,6 +25,10 @@
 const NOMBRES_NOTAS = ["Do", "Do♯", "Re", "Re♯", "Mi", "Fa", "Fa♯", "Sol", "Sol♯", "La", "La♯", "Si"];
 // Las mismas notas en "cifrado americano" (el que usan las partituras de guitarra en internet)
 const NOMBRES_INGLES = ["C", "C♯", "D", "D♯", "E", "F", "F♯", "G", "G♯", "A", "A♯", "B"];
+// Las mismas 12 notas escritas con "♭" (bemol = medio tono más baja). Mi♭ y Re♯ son la
+// MISMA nota con otro nombre; algunas afinaciones (como "medio tono abajo") se nombran así.
+const NOMBRES_NOTAS_BEMOL = ["Do", "Re♭", "Re", "Mi♭", "Mi", "Fa", "Sol♭", "Sol", "La♭", "La", "Si♭", "Si"];
+const NOMBRES_INGLES_BEMOL = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"];
 // Frecuencia de referencia mundial: la nota La4 vibra a 440 Hz
 const FRECUENCIA_LA4 = 440;
 // Por debajo de este volumen consideramos que hay silencio (el volumen va de 0 a 1)
@@ -83,6 +87,54 @@ function frecuenciaANota(frecuencia) {
     cents: (exacto - redondeado) * 100,           // 100 cents = 1 semitono
     frecuencia,
   };
+}
+
+// Lo contrario de numeroDeNota: de un número de nota MIDI a su frecuencia en Hz.
+// Cada semitono multiplica la frecuencia por la raíz 12 de 2 (≈ 1,0595).
+// Ejemplo: 69 → 440 Hz (La4); 40 → 82,41 Hz (Mi2, la 6ª cuerda).
+function frecuenciaDeNota(numero) {
+  return FRECUENCIA_LA4 * Math.pow(2, (numero - 69) / 12);
+}
+
+// El nombre de un número de nota MIDI, en español y en cifrado americano con su octava.
+// Ejemplo: 40 → { nombre: "Mi", ingles: "E2" }; 39 con bemoles → { nombre: "Mi♭", ingles: "E♭2" }
+function nombreDeNota(numero, { bemoles = false } = {}) {
+  const clase = ((numero % 12) + 12) % 12;    // cuál de las 12 notas es (0 = Do)
+  const octava = Math.floor(numero / 12) - 1; // en qué octava está
+  return {
+    nombre: (bemoles ? NOMBRES_NOTAS_BEMOL : NOMBRES_NOTAS)[clase],
+    ingles: (bemoles ? NOMBRES_INGLES_BEMOL : NOMBRES_INGLES)[clase] + octava,
+  };
+}
+
+// Las AFINACIONES de la guitarra (las usa el afinador).
+// Una lista (array) con un objeto por afinación. Tener los datos en UN solo lugar
+// se llama "una sola fuente de verdad": el menú de afinaciones, las 6 uñetas, los
+// textos y el cálculo de afinación (js/afinador.js) salen todos de aquí.
+// "notas" = la nota de cada cuerda al aire, de la 6ª (la más gruesa) a la 1ª (la más
+// fina), como NÚMERO de nota (sistema MIDI: cada semitono suma 1; Mi2 = 40, La2 = 45).
+// Así no escribimos frecuencias a mano: frecuenciaDeNota (arriba) las calcula.
+// Para agregar una afinación, basta con agregar una línea aquí.
+const AFINACIONES = [
+  { id: "estandar", nombre: "Estándar", notas: [40, 45, 50, 55, 59, 64] },                       // Mi La Re Sol Si Mi
+  { id: "drop-d", nombre: "Drop D", notas: [38, 45, 50, 55, 59, 64] },                           // Re La Re Sol Si Mi (la 6ª, un tono abajo)
+  { id: "medio-tono", nombre: "Medio tono abajo", notas: [39, 44, 49, 54, 58, 63], bemoles: true }, // Mi♭ La♭ Re♭ Sol♭ Si♭ Mi♭
+  { id: "un-tono", nombre: "Un tono abajo", notas: [38, 43, 48, 53, 57, 62] },                   // Re Sol Do Fa La Re
+  { id: "sol-abierto", nombre: "Sol abierto", notas: [38, 43, 50, 55, 59, 62] },                 // Re Sol Re Sol Si Re (al aire suena un acorde de Sol)
+];
+
+// Arma la lista de las 6 cuerdas de una afinación, con todo lo que la pantalla necesita.
+// Ejemplo de una cuerda: { numero: 6, nota: "Mi", ingles: "E2", frecuencia: 82.41 }
+function cuerdasDeAfinacion(afinacion) {
+  return afinacion.notas.map((numero, posicion) => {
+    const nombre = nombreDeNota(numero, { bemoles: afinacion.bemoles }); // función de arriba
+    return {
+      numero: 6 - posicion,                         // la primera de la lista es la 6ª cuerda
+      nota: nombre.nombre,                          // "Mi"
+      ingles: nombre.ingles,                        // "E2"
+      frecuencia: frecuenciaDeNota(numero),         // 82.41 (función de arriba)
+    };
+  });
 }
 
 // Cuántos cents hay entre dos frecuencias (positivo = la primera es más aguda)
@@ -545,7 +597,7 @@ function resumirAcordes(ventanas, duracionVentana, { minimoSegundos = 0.9 } = {}
 // En el navegador "module" no existe, así que esta línea no hace nada allí.
 if (typeof module !== "undefined") {
   module.exports = {
-    NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, centsEntre,
+    NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, frecuenciaDeNota, nombreDeNota, AFINACIONES, cuerdasDeAfinacion, centsEntre,
     detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, reconocerAcordesDeCancion, resumirAcordes, SIMILITUD_MINIMA_CANCION,
   };
 }
