@@ -3,7 +3,8 @@
 // La pantalla de CANCIONES: saca los acordes de un audio y los muestra en orden.
 //   1. Consigue el audio: grabándolo con el micrófono o eligiendo un archivo.
 //   2. Lo "decodifica" (convierte el mp3/m4a/wav en números) a 11025 muestras por segundo.
-//   3. Lo recorre en trozos cortos ("ventanas") y en cada uno busca el acorde (musica.js).
+//   3. Lo recorre en trozos cortos ("ventanas") y en cada uno busca el acorde, mirando
+//      también las ventanas vecinas (musica.js).
 //   4. Junta los trozos iguales y quita los errores sueltos (resumirAcordes, en musica.js).
 //   5. Muestra la lista: 1. Do (0:00) · 2. Sol (0:04) · ...
 
@@ -185,7 +186,8 @@ async function analizarAudio(archivo, origen) {
       ventanas.push({
         // Usamos el CENTRO de la ventana como su momento: así el minuto que se muestra es más exacto
         tiempo: (inicio + CANCIONES_VENTANA / 2) / CANCIONES_FRECUENCIA,
-        acorde: analizarVentana(muestras, inicio, CANCIONES_VENTANA, CANCIONES_FRECUENCIA), // musica.js
+        // Volumen y croma de esta ventana (musica.js). El acorde se decide después, con sus vecinas
+        ...analizarVentana(muestras, inicio, CANCIONES_VENTANA, CANCIONES_FRECUENCIA),
       });
       // Cada 40 ventanas actualizamos la barra y dejamos respirar a la pantalla
       if (ventanas.length % 40 === 0) {
@@ -195,7 +197,10 @@ async function analizarAudio(archivo, origen) {
       }
     }
 
-    const acordes = resumirAcordes(ventanas, CANCIONES_SALTO / CANCIONES_FRECUENCIA); // musica.js
+    // Decidimos el acorde de cada ventana mirando también a sus vecinas, y después
+    // juntamos los trozos iguales y quitamos los errores sueltos (las dos funciones en musica.js)
+    const conAcordes = reconocerAcordesDeCancion(ventanas);
+    const acordes = resumirAcordes(conAcordes, CANCIONES_SALTO / CANCIONES_FRECUENCIA);
     mostrarAvance(100);
     mostrarAcordes(acordes);
     const recorte = duracion > CANCIONES_MAXIMO_SEGUNDOS ? ` (se analizaron los primeros ${formatearTiempo(CANCIONES_MAXIMO_SEGUNDOS)})` : "";

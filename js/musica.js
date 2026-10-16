@@ -363,11 +363,20 @@ function espectro(muestras) {
 
 // ===== 5. Reconocer ACORDES =====
 
+// Cuánto cuenta un pico que parece ser un ARMÓNICO de una nota más grave (ver abajo)
+const PESO_ARMONICO = 0.5;
+
 // Arma el "croma": un arreglo de 12 números que dice cuánto suena cada nota
 // (Do, Do♯, Re...), sin importar la octava. Recibe las magnitudes del espectro.
 // Solo cuenta los "picos" (las frecuencias que sobresalen de sus vecinas),
 // porque son las notas reales; el resto es ruido.
-function cromaDesdeEspectro(magnitudes, frecuenciaMuestreo, { minimo = 60, maximo = 2000 } = {}) {
+// Opción "quitarArmonicos": cada nota de guitarra trae "armónicos", sonidos más
+// agudos que vibran 2, 3, 4, 5... veces más rápido. El 3º suena como OTRA nota
+// (una quinta más arriba: el Mi trae un Si) y el 5º también (una tercera: el Do
+// trae un Mi). Con esta opción, un pico que está justo 3 o 5 veces más arriba que
+// otro pico más fuerte cuenta solo la mitad. Lo usa Canciones: medido con
+// grabaciones reales, así el Do ya no se confunde con Mim.
+function cromaDesdeEspectro(magnitudes, frecuenciaMuestreo, { minimo = 60, maximo = 2000, quitarArmonicos = false } = {}) {
   const croma = new Array(12).fill(0);
   const anchoBanda = frecuenciaMuestreo / (magnitudes.length * 2); // cuántos Hz representa cada casilla
   const desde = Math.max(1, Math.ceil(minimo / anchoBanda));
@@ -380,7 +389,8 @@ function cromaDesdeEspectro(magnitudes, frecuenciaMuestreo, { minimo = 60, maxim
   }
   if (picoMaximo === 0) return croma;
 
-  // Segunda pasada: sumar cada pico en la nota que le corresponde
+  // Segunda pasada: anotar cada pico con su frecuencia exacta y su fuerza
+  const picos = [];
   for (let k = desde; k <= hasta; k++) {
     const actual = magnitudes[k];
     if (actual <= magnitudes[k - 1] || actual < magnitudes[k + 1] || actual < picoMaximo * 0.02) continue;
@@ -389,9 +399,23 @@ function cromaDesdeEspectro(magnitudes, frecuenciaMuestreo, { minimo = 60, maxim
     const derecha = magnitudes[k + 1];
     const curvatura = izquierda - 2 * actual + derecha;
     const corrimiento = curvatura !== 0 ? (0.5 * (izquierda - derecha)) / curvatura : 0;
-    const frecuencia = (k + corrimiento) * anchoBanda;
-    const nota = Math.round(numeroDeNota(frecuencia));
-    croma[((nota % 12) + 12) % 12] += actual;
+    picos.push({ frecuencia: (k + corrimiento) * anchoBanda, fuerza: actual });
+  }
+
+  // Tercera pasada: sumar cada pico en la nota que le corresponde
+  for (const pico of picos) {
+    let peso = 1;
+    if (quitarArmonicos) {
+      // ¿Hay un pico más grave y más fuerte del que este sea el 3er o 5º armónico?
+      // (con un 2 % de tolerancia, porque las cuerdas reales no son perfectas)
+      for (const otro of picos) {
+        if (otro.frecuencia >= pico.frecuencia || otro.fuerza < pico.fuerza) continue;
+        const veces = pico.frecuencia / otro.frecuencia;
+        if (Math.abs(veces - 3) < 0.06 || Math.abs(veces - 5) < 0.1) peso = PESO_ARMONICO;
+      }
+    }
+    const nota = Math.round(numeroDeNota(pico.frecuencia));
+    croma[((nota % 12) + 12) % 12] += pico.fuerza * peso;
   }
 
   // Normalizamos: la nota que más suena queda en 1 y las demás en proporción
@@ -429,13 +453,44 @@ function detectarAcorde(croma) {
 
 // ===== 6. Analizar una CANCIÓN (un audio completo) =====
 
-// Analiza un trozo ("ventana") de un audio y devuelve el acorde que suena, o null
-// si hay silencio o si no se parece lo suficiente a ningún acorde.
+// Ajustes de Canciones, elegidos MIDIENDO con 2 grabaciones reales de guitarra
+// (hechas con un teléfono) y canciones fabricadas difíciles (con ruido y tramos
+// sin acordes). Antes se reconocían 5 de 11 acordes reales; con estos, 10 de 11,
+// sin inventar acordes en las canciones fabricadas.
+// - Umbral más bajo que en vivo (0,82): en grabaciones reales, muchos acordes
+//   verdaderos quedan en 0,75–0,81. En Canciones no hay que distinguir "nota sola
+//   o acorde" como en vivo, y el promedio con las vecinas (abajo) evita errores.
+const SIMILITUD_MINIMA_CANCION = 0.7;
+// - Cada ventana se promedia con 2 vecinas de cada lado (~0,9 s en total):
+//   un acorde dura segundos, así que juntar ventanas lo hace más claro.
+const CANCION_VECINAS = 2;
+
+// Analiza un trozo ("ventana") de un audio y devuelve su volumen y su croma
+// (todavía no decide el acorde: eso se hace después, mirando también las vecinas).
 function analizarVentana(muestras, inicio, tamano, frecuenciaMuestreo) {
   const trozo = muestras.subarray(inicio, inicio + tamano);
-  if (calcularVolumen(trozo) < UMBRAL_SILENCIO) return null;
-  const acorde = detectarAcorde(cromaDesdeEspectro(espectro(trozo), frecuenciaMuestreo));
-  return acorde && acorde.similitud >= SIMILITUD_MINIMA_ACORDE ? acorde : null;
+  const volumen = calcularVolumen(trozo);
+  // En silencio no vale la pena calcular el croma
+  const croma = volumen < UMBRAL_SILENCIO ? null : cromaDesdeEspectro(espectro(trozo), frecuenciaMuestreo, { quitarArmonicos: true });
+  return { volumen, croma };
+}
+
+// Recibe la lista de ventanas [{ tiempo, croma }, ...] y decide el acorde de
+// cada una, promediando su croma con el de sus vecinas.
+// Devuelve [{ tiempo, acorde }, ...] (acorde = null si hay silencio o no es claro),
+// que es lo que necesita resumirAcordes.
+function reconocerAcordesDeCancion(ventanas) {
+  return ventanas.map((ventana, i) => {
+    if (!ventana.croma) return { tiempo: ventana.tiempo, acorde: null }; // silencio
+    // Las vecinas (y ella misma) que tienen sonido
+    const vecinas = ventanas.slice(Math.max(0, i - CANCION_VECINAS), i + CANCION_VECINAS + 1).filter((vecina) => vecina.croma);
+    // Sumamos sus cromas nota por nota...
+    const suma = new Array(12).fill(0).map((_, nota) => vecinas.reduce((total, vecina) => total + vecina.croma[nota], 0));
+    // ...y normalizamos (la nota más fuerte queda en 1), igual que un croma de una sola ventana
+    const mayor = Math.max(...suma);
+    const acorde = detectarAcorde(suma.map((valor) => valor / mayor));
+    return { tiempo: ventana.tiempo, acorde: acorde && acorde.similitud >= SIMILITUD_MINIMA_CANCION ? acorde : null };
+  });
 }
 
 // Convierte la lista de ventanas analizadas en la lista final de acordes, en orden.
@@ -491,6 +546,6 @@ function resumirAcordes(ventanas, duracionVentana, { minimoSegundos = 0.9 } = {}
 if (typeof module !== "undefined") {
   module.exports = {
     NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, centsEntre,
-    detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, resumirAcordes,
+    detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, reconocerAcordesDeCancion, resumirAcordes, SIMILITUD_MINIMA_CANCION,
   };
 }
