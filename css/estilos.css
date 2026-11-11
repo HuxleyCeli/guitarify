@@ -1209,6 +1209,22 @@ button:disabled {
   dominant-baseline: central;       /* centrado vertical */
 }
 
+/* Diagrama de una NOTA: el nombre de la nota dentro del círculo rojo (más chico
+   que el número de dedo, porque "Sol" o "Do♯" tienen varias letras) */
+.diagrama-nota-nombre {
+  fill: var(--color-blanco);
+  font: 700 9px var(--fuente-texto);
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+/* Diagrama de una NOTA en una cuerda al aire: círculo rojo vacío arriba de la cuerda */
+.diagrama-aire {
+  fill: none;
+  stroke: var(--color-rojo);
+  stroke-width: 2.5;
+}
+
 /* ○ y × arriba de las cuerdas */
 .diagrama-marca {
   fill: var(--color-texto-suave);

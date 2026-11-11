@@ -3,6 +3,7 @@
 // La pantalla de NOTAS Y ACORDES: escucha en vivo y dice qué suena.
 //   - Si suena UNA nota limpia (claridad alta), muestra la nota: "La", A2, 110 Hz.
 //   - Si suenan VARIAS notas a la vez, busca el acorde: "Lam" (La menor, Am).
+//   - Muestra un diagrama: cómo se toca el acorde, o DÓNDE se toca la nota en el mástil.
 //   - Guarda las últimas cosas reconocidas en un historial.
 // Usa musica.js (detectar nota y acorde) y microfono.js (escuchar).
 
@@ -41,6 +42,8 @@ const notasListaHistorial = document.getElementById("notas-historial");
 const notasVacio = document.getElementById("notas-vacio");
 const notasDiagrama = document.getElementById("notas-diagrama");             // la caja "Cómo se toca"
 const notasDiagramaDibujo = document.getElementById("notas-diagrama-dibujo"); // donde va el dibujo
+const notasDiagramaTitulo = document.getElementById("notas-diagrama-titulo"); // "Cómo se toca" o "Dónde se toca"
+const notasDiagramaAyuda = document.getElementById("notas-diagrama-ayuda");   // el texto de abajo del dibujo
 const notasRuido = document.getElementById("notas-ruido");                   // el aviso "Hay mucho ruido"
 
 // ===== 4. Reconocer =====
@@ -52,6 +55,7 @@ function reconocerSonido(tono, obtenerCroma) {
     const nota = frecuenciaANota(tono.frecuencia);        // función de musica.js
     return {
       clave: nota.ingles,                                  // "A2": identifica esta detección
+      numero: nota.numero,                                 // 45: el número de nota, para buscarla en el mástil
       tipo: "Nota",
       nombre: nota.nombre,                                 // "La"
       detalle: `${nota.ingles} · ${formatearHz(tono.frecuencia, 1)}`,
@@ -119,11 +123,42 @@ function mostrarDeteccion(deteccion) {
     ficha.textContent = nota;
     notasDelAcorde.append(ficha);
   }
-  // Si es un acorde, mostramos cómo se toca (función de diagramas.js); si es una nota sola, lo ocultamos
-  const esAcorde = deteccion.tipo === "Acorde";
-  notasDiagrama.hidden = !esAcorde;
+  // Diagrama: si es un acorde, cómo se toca; si es una nota sola, dónde se toca
   notasDiagramaDibujo.replaceChildren(); // borra el dibujo anterior
-  if (esAcorde) notasDiagramaDibujo.append(dibujarDiagramaAcorde(deteccion.clave));
+  if (deteccion.tipo === "Acorde") {
+    notasDiagramaTitulo.textContent = "Cómo se toca";
+    notasDiagramaAyuda.textContent = "Números = dedos: 1 índice · 2 medio · 3 anular · 4 meñique";
+    notasDiagramaDibujo.append(dibujarDiagramaAcorde(deteccion.clave)); // función de diagramas.js
+    notasDiagrama.hidden = false;
+  } else {
+    mostrarDondeSeToca(deteccion);
+  }
+}
+
+// Muestra en qué cuerda y traste se toca la nota. Una misma nota suena igual en varios
+// lugares del mástil; dibujamos el más fácil y escribimos los otros debajo.
+// Usa la afinación que se eligió en el Afinador (afinacionActual, de afinador.js): así,
+// en Drop D, el Re grave aparece en la 6ª cuerda al aire.
+function mostrarDondeSeToca(deteccion) {
+  const posiciones = posicionesDeNota(deteccion.numero, afinacionActual); // musica.js
+  const facil = posicionMasFacil(posiciones);                            // musica.js
+  // Si la nota no se puede tocar en una guitarra (por ejemplo, un silbido muy agudo), no hay dibujo
+  if (!facil) {
+    notasDiagrama.hidden = true;
+    return;
+  }
+  notasDiagramaTitulo.textContent = "Dónde se toca";
+  notasDiagramaDibujo.append(dibujarDiagramaNota(facil, deteccion.nombre)); // diagramas.js
+  // Texto: el lugar dibujado y, si hay, los otros lugares donde suena igual.
+  // " " es un espacio que NO se corta al cambiar de línea: así "5ª cuerda, traste 15"
+  // queda siempre junto y no se parte en dos renglones.
+  const describir = (p) => `${p.cuerda}ª cuerda, ${p.traste === 0 ? "al aire" : "traste " + p.traste}`;
+  const otros = posiciones
+    .filter((p) => p !== facil)
+    .sort((a, b) => a.traste - b.traste) // del traste más bajo al más alto
+    .map(describir);
+  notasDiagramaAyuda.textContent = describir(facil) + (otros.length ? `. También suena igual en: ${otros.join(" · ")}` : "");
+  notasDiagrama.hidden = false;
 }
 
 // Agrega al principio del historial (si no es igual a lo último) y lo redibuja

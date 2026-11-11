@@ -84,6 +84,7 @@ function frecuenciaANota(frecuencia) {
     ingles: NOMBRES_INGLES[clase] + octava,       // "A4"
     clase,
     octava,
+    numero: redondeado,                           // número de nota MIDI: 69 (sirve para buscarla en el mástil)
     cents: (exacto - redondeado) * 100,           // 100 cents = 1 semitono
     frecuencia,
   };
@@ -135,6 +136,32 @@ function cuerdasDeAfinacion(afinacion) {
       frecuencia: frecuenciaDeNota(numero),         // 82.41 (función de arriba)
     };
   });
+}
+
+// ===== 2b. Dónde se toca una NOTA en el mástil =====
+//
+// Una misma nota se puede tocar en varios lugares: el Do4 suena igual en la 2ª
+// cuerda traste 1, en la 3ª traste 5, en la 4ª traste 10 y en la 5ª traste 15.
+// Por el sonido no se sabe en cuál la tocaste, así que calculamos TODOS los
+// lugares y elegimos el más fácil para mostrar.
+const TRASTE_MAXIMO = 15; // hasta qué traste buscamos (más arriba casi no se toca)
+
+// Devuelve todos los lugares donde suena la nota "numero" (número MIDI) con esa afinación.
+// Cada traste sube un semitono, así que: traste = nota que buscamos − nota de la cuerda al aire.
+// Ejemplo: (60, estándar) → [{ cuerda: 5, indice: 1, traste: 15 }, { cuerda: 4, ... traste: 10 }, ...]
+function posicionesDeNota(numero, afinacion) {
+  return afinacion.notas
+    .map((alAire, indice) => ({ cuerda: 6 - indice, indice, traste: numero - alAire })) // indice 0 = 6ª cuerda
+    .filter((posicion) => posicion.traste >= 0 && posicion.traste <= TRASTE_MAXIMO);    // solo las que existen en el mástil
+}
+
+// De todos esos lugares, el más fácil: el que está más cerca de la cejuela (traste más bajo).
+// Una cuerda al aire (traste 0) gana siempre: no hay que apretar nada.
+// Devuelve null si la nota no se puede tocar en esa guitarra (demasiado grave o aguda).
+function posicionMasFacil(posiciones) {
+  if (posiciones.length === 0) return null;
+  // "sort" ordena de menor a mayor traste; nos quedamos con el primero
+  return [...posiciones].sort((a, b) => a.traste - b.traste)[0];
 }
 
 // Cuántos cents hay entre dos frecuencias (positivo = la primera es más aguda)
@@ -597,7 +624,7 @@ function resumirAcordes(ventanas, duracionVentana, { minimoSegundos = 0.9 } = {}
 // En el navegador "module" no existe, así que esta línea no hace nada allí.
 if (typeof module !== "undefined") {
   module.exports = {
-    NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, frecuenciaDeNota, nombreDeNota, AFINACIONES, cuerdasDeAfinacion, centsEntre,
+    NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, frecuenciaDeNota, nombreDeNota, AFINACIONES, cuerdasDeAfinacion, posicionesDeNota, posicionMasFacil, centsEntre,
     detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, reconocerAcordesDeCancion, resumirAcordes, SIMILITUD_MINIMA_CANCION,
   };
 }

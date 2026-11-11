@@ -329,10 +329,12 @@
           <ul id="notas-del-acorde" class="notas-del-acorde" aria-label="Notas del acorde"></ul>
           <!-- Diagrama de cómo se toca el acorde. Solo aparece cuando se reconoce un acorde
                (con una nota sola queda oculto). js/notas.js dibuja el diagrama adentro -->
+          <!-- Con una nota sola, la misma caja muestra DÓNDE se toca esa nota en el mástil.
+               js/notas.js cambia el título y la ayuda según sea un acorde o una nota -->
           <div id="notas-diagrama" class="diagrama-caja" hidden>
-            <p class="diagrama-titulo">Cómo se toca</p>
+            <p id="notas-diagrama-titulo" class="diagrama-titulo">Cómo se toca</p>
             <div id="notas-diagrama-dibujo"></div>
-            <p class="diagrama-ayuda">Números = dedos: 1 índice · 2 medio · 3 anular · 4 meñique</p>
+            <p id="notas-diagrama-ayuda" class="diagrama-ayuda">Números = dedos: 1 índice · 2 medio · 3 anular · 4 meñique</p>
           </div>
         </div>
         <!-- Barra de "Señal": muestra que el micrófono está escuchando -->
