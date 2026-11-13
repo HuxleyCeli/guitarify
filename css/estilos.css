@@ -1376,6 +1376,12 @@ button:disabled {
   line-height: 1;
 }
 
+/* Tarjeta de una NOTA suelta (riff o solo): el nombre en dorado, para distinguirla
+   de los acordes (blancos) a simple vista */
+.lista-acordes li.es-nota .acorde-nombre {
+  color: var(--color-dorado-claro);
+}
+
 /* Minuto en que empieza el acorde ("0:04") */
 .acorde-tiempo {
   font-size: 0.72rem;

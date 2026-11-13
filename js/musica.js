@@ -668,11 +668,112 @@ function resumirAcordes(ventanas, duracionVentana, { minimoSegundos = 0.9 } = {}
   }));
 }
 
+// ===== 7. NOTAS de una canción (riffs y solos), además de los acordes =====
+//
+// Una canción puede tener partes con una nota a la vez (un riff, un solo) y partes
+// con acordes. Para las notas se usa YIN, igual que en el afinador, pero:
+//   - a 22 050 muestras por segundo: a 11 025 (lo que usan los acordes) YIN se
+//     equivocaba de octava en las notas agudas, desde La5 (880 Hz);
+//   - con trozos cortos (46 ms) mirados cada 12 ms, para alcanzar notas rápidas.
+// Los números se eligieron midiendo riffs fabricados (de 2,5 a 10 notas por segundo)
+// y las grabaciones reales de acordes del equipo (no debía inventar notas allí).
+const CANCION_NOTA_FRECUENCIA = 22050; // muestras por segundo para buscar notas
+const CANCION_NOTA_VENTANA = 1024;     // trozo de 1024 muestras ≈ 46 ms
+const CANCION_NOTA_SALTO = 256;        // un trozo nuevo cada 256 muestras ≈ 12 ms
+const CANCION_NOTA_CLARIDAD = 0.95;    // con 0,90 aparecían notas inventadas en grabaciones de acordes
+const CANCION_NOTA_MINIMA = 0.04;      // una nota debe durar al menos 0,04 s (con 0,02 también se inventaban)
+const CANCION_NOTA_MAS_AGUDA = 88;     // Mi6: la 1ª cuerda en el traste 24 (no hay notas más agudas en la guitarra)
+const CANCION_RIFF_NOTAS = 3;          // 3 o más notas seguidas = un riff (ver mezclarNotasYAcordes)
+const CANCION_RIFF_HUECO = 0.15;       // ... con menos de 0,15 s de silencio entre una y otra
+const CANCION_RIFF_CUBRE = 0.3;        // si las notas cubren el 30 % de un "acorde", era un riff
+
+// Lee la nota de UN trozo de la canción. Devuelve su número (MIDI) o null si no hay
+// una nota sola y clara. "notaMasGrave" = la cuerda más grave de la afinación elegida:
+// un acorde con raíz y quinta a veces "suena" como una nota más grave que la guitarra
+// (medido: el acorde Do♯ daba un Do♯2), y esas notas imposibles se descartan.
+function leerNotaDeVentana(muestras, inicio, frecuenciaMuestreo, notaMasGrave) {
+  const trozo = muestras.subarray(inicio, inicio + CANCION_NOTA_VENTANA);
+  if (calcularVolumen(trozo) < UMBRAL_SILENCIO) return null;                    // silencio
+  const tono = detectarTono(trozo, frecuenciaMuestreo);
+  if (!tono || tono.claridad < CANCION_NOTA_CLARIDAD) return null;              // no es una nota sola y clara
+  const numero = frecuenciaANota(tono.frecuencia).numero;
+  if (numero < notaMasGrave || numero > CANCION_NOTA_MAS_AGUDA) return null;    // no existe en esta guitarra
+  return numero;
+}
+
+// Junta las lecturas seguidas de la misma nota en "tramos" y quita los muy cortos.
+// Recibe [{ tiempo, numero }, ...] (numero = null si no había nota) y devuelve
+// [{ numero, inicio, fin }, ...].
+function resumirNotas(lecturas) {
+  const paso = CANCION_NOTA_SALTO / CANCION_NOTA_FRECUENCIA; // cuántos segundos hay entre lectura y lectura
+  const tramos = [];
+  for (const lectura of lecturas) {
+    const ultimo = tramos[tramos.length - 1];
+    if (ultimo && ultimo.numero === lectura.numero) ultimo.fin = lectura.tiempo + paso; // la misma nota sigue
+    else tramos.push({ numero: lectura.numero, inicio: lectura.tiempo, fin: lectura.tiempo + paso }); // empieza otra
+  }
+  return tramos.filter((tramo) => tramo.numero !== null && tramo.fin - tramo.inicio >= CANCION_NOTA_MINIMA);
+}
+
+// Cuántos segundos se tocan dos tramos (0 si no se tocan)
+function tiempoEnComun(a, b) {
+  return Math.max(0, Math.min(a.fin, b.fin) - Math.max(a.inicio, b.inicio));
+}
+
+// Mezcla las notas y los acordes en UNA lista, en el orden en que suenan.
+// Recibe los acordes (de resumirAcordes, con inicio y duracion) y las notas (de resumirNotas).
+// Devuelve [{ tipo: "acorde" | "nota", corto, ingles, inicio, duracion, ... }, ...].
+// Dos reglas, medidas con riffs fabricados y con grabaciones reales de acordes:
+//   1) Un RIFF son 3 o más notas seguidas. Al final de un rasgueo a veces queda sonando
+//      una sola cuerda (una nota suelta): esa NO se muestra si cae dentro de un acorde;
+//      las notas de un riff, sí.
+//   2) Si las notas cubren buena parte (30 %) de un "acorde", ese acorde era en
+//      realidad el riff (muchas notas juntas parecen un acorde) y no se muestra.
+function mezclarNotasYAcordes(acordes, notas) {
+  // Regla 1: marcar las notas que forman un riff
+  let grupo = [];
+  const cerrarGrupo = () => {
+    if (grupo.length >= CANCION_RIFF_NOTAS) grupo.forEach((nota) => (nota.riff = true));
+    grupo = [];
+  };
+  for (const nota of notas) {
+    if (grupo.length && nota.inicio - grupo[grupo.length - 1].fin > CANCION_RIFF_HUECO) cerrarGrupo(); // hubo un hueco: el grupo terminó
+    grupo.push(nota);
+  }
+  cerrarGrupo();
+
+  // Regla 2: acordes que en realidad eran un riff
+  const conTramo = acordes.map((acorde) => ({ ...acorde, fin: acorde.inicio + acorde.duracion }));
+  const acordesBuenos = conTramo.filter((acorde) => {
+    const cubierto = notas.reduce((total, nota) => total + tiempoEnComun(acorde, nota), 0);
+    return cubierto / acorde.duracion < CANCION_RIFF_CUBRE;
+  });
+  // Notas sueltas que caen dentro de un acorde: una cuerda que quedó sonando
+  const notasBuenas = notas.filter((nota) => nota.riff || acordesBuenos.every((acorde) => tiempoEnComun(acorde, nota) / (nota.fin - nota.inicio) < 0.5));
+
+  // Todo junto, ordenado por cuándo empieza
+  const lista = [
+    ...acordesBuenos.map(({ fin, ...acorde }) => ({ tipo: "acorde", ...acorde })),
+    ...notasBuenas.map((nota) => {
+      const nombre = frecuenciaANota(frecuenciaDeNota(nota.numero)); // nombre y octava de esa nota
+      return { tipo: "nota", corto: nombre.nombre, ingles: nombre.ingles, completo: `Nota ${nombre.nombre} (${nombre.ingles})`, numero: nota.numero, inicio: nota.inicio, duracion: nota.fin - nota.inicio };
+    }),
+  ].sort((a, b) => a.inicio - b.inicio);
+  // Si dos seguidas son iguales (la misma nota repetida, o el mismo acorde), se juntan en una
+  const resultado = [];
+  for (const item of lista) {
+    const ultimo = resultado[resultado.length - 1];
+    if (ultimo && ultimo.tipo === item.tipo && ultimo.corto === item.corto && ultimo.ingles === item.ingles) ultimo.duracion = item.inicio + item.duracion - ultimo.inicio;
+    else resultado.push({ ...item });
+  }
+  return resultado;
+}
+
 // Esto permite usar este mismo archivo desde las pruebas automáticas (en Node.js).
 // En el navegador "module" no existe, así que esta línea no hace nada allí.
 if (typeof module !== "undefined") {
   module.exports = {
     NOMBRES_NOTAS, TIPOS_ACORDE, armarAcorde, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, frecuenciaDeNota, nombreDeNota, AFINACIONES, cuerdasDeAfinacion, posicionesDeNota, posicionMasFacil, centsEntre,
-    detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, reconocerAcordesDeCancion, resumirAcordes, SIMILITUD_MINIMA_CANCION,
+    detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, reconocerAcordesDeCancion, resumirAcordes, CANCION_NOTA_FRECUENCIA, CANCION_NOTA_VENTANA, CANCION_NOTA_SALTO, leerNotaDeVentana, resumirNotas, mezclarNotasYAcordes, SIMILITUD_MINIMA_CANCION,
   };
 }

@@ -49,7 +49,15 @@ const listaAcordes = document.getElementById("canciones-lista");
 // ===== 4. Ayudas =====
 
 // Convierte segundos en "minutos:segundos": 75 → "1:15"
-function formatearTiempo(segundos) {
+// Con { decimas: true } agrega las décimas de segundo ("0:02.4"): sirve para las notas,
+// que pueden durar menos de un segundo y cambiar muy rápido.
+function formatearTiempo(segundos, { decimas = false } = {}) {
+  if (decimas) {
+    const enDecimas = Math.round(segundos * 10);         // 2,43 s → 24 décimas
+    const minutos = Math.floor(enDecimas / 600);          // 600 décimas = 1 minuto
+    const resto = (enDecimas % 600) / 10;                 // lo que sobra, en segundos: 2.4
+    return `${minutos}:${resto.toFixed(1).padStart(4, "0")}`; // "0:02.4"
+  }
   const total = Math.round(segundos);    // redondeamos al segundo más cercano (5,9 s → 6 s)
   const minutos = Math.floor(total / 60);
   const resto = total % 60;              // "%" = el resto de la división: lo que sobra después de los minutos
@@ -74,8 +82,8 @@ function mezclarAMono(bufer) {
 
 // Cambia la cantidad de muestras por segundo promediando grupos de muestras
 // (plan B, por si el navegador no sabe hacerlo solo)
-function remuestrear(muestras, frecuenciaOriginal) {
-  const factor = frecuenciaOriginal / CANCIONES_FRECUENCIA;
+function remuestrear(muestras, frecuenciaOriginal, frecuenciaNueva = CANCIONES_FRECUENCIA) {
+  const factor = frecuenciaOriginal / frecuenciaNueva;
   const resultado = new Float32Array(Math.floor(muestras.length / factor));
   for (let i = 0; i < resultado.length; i++) {
     const desde = Math.floor(i * factor);
@@ -87,11 +95,13 @@ function remuestrear(muestras, frecuenciaOriginal) {
   return resultado;
 }
 
-// Convierte el archivo de audio (mp3, m4a, wav...) en una lista de números a 11025 por segundo
-async function decodificarAudio(datos) {
+// Convierte el archivo de audio (mp3, m4a, wav...) en una lista de números.
+// "frecuencia" = cuántas muestras por segundo queremos: 11025 para los acordes (si no
+// se dice otra cosa) y 22050 para las notas (ver musica.js, sección 7)
+async function decodificarAudio(datos, frecuencia = CANCIONES_FRECUENCIA) {
   try {
-    // Plan A: un "estudio de sonido fuera de línea" a 11025 Hz convierte y remuestrea en un solo paso
-    const estudio = new OfflineAudioContext(1, 1, CANCIONES_FRECUENCIA);
+    // Plan A: un "estudio de sonido fuera de línea" a esa frecuencia convierte y remuestrea en un solo paso
+    const estudio = new OfflineAudioContext(1, 1, frecuencia);
     const bufer = await estudio.decodeAudioData(datos.slice(0)); // slice(0) = una copia (decodeAudioData "gasta" el original)
     return mezclarAMono(bufer);
   } catch {
@@ -99,7 +109,7 @@ async function decodificarAudio(datos) {
     const estudio = new AudioContext();
     try {
       const bufer = await estudio.decodeAudioData(datos.slice(0));
-      return remuestrear(mezclarAMono(bufer), bufer.sampleRate);
+      return remuestrear(mezclarAMono(bufer), bufer.sampleRate, frecuencia);
     } finally {
       estudio.close();
     }
@@ -132,33 +142,46 @@ function bloquearBotones(bloquear) {
   botonElegir.disabled = bloquear;
 }
 
-// Dibuja la lista de acordes encontrados
-function mostrarAcordes(acordes) {
+// Dibuja la lista: acordes y notas MEZCLADOS, en el orden en que suenan.
+// Cada elemento tiene "tipo": "acorde" o "nota" (sale de mezclarNotasYAcordes, en musica.js).
+// Si un elemento no dice su tipo, es un acorde (así funcionaba antes).
+function mostrarAcordes(elementos) {
   listaAcordes.replaceChildren(); // borra la lista anterior
-  for (const acorde of acordes) {
+  for (const elemento of elementos) {
+    const esNota = elemento.tipo === "nota";
     const fila = document.createElement("li");
+    if (esNota) fila.className = "es-nota";      // el CSS pinta las notas en dorado
     const nombre = document.createElement("span");
     nombre.className = "acorde-nombre";
-    nombre.textContent = acorde.corto;           // "Lam"
+    nombre.textContent = elemento.corto;         // "Lam" (acorde) o "La" (nota)
     const cifrado = document.createElement("span");
     cifrado.className = "acorde-cifrado";
-    cifrado.textContent = acorde.ingles;         // "Am"
+    cifrado.textContent = elemento.ingles;       // "Am" (acorde) o "A3" (nota, con su octava)
     const tiempo = document.createElement("span");
     tiempo.className = "acorde-tiempo";
-    tiempo.textContent = formatearTiempo(acorde.inicio); // "0:04": cuándo empieza
-    // Diagrama chico de cómo se toca (función de diagramas.js), entre el nombre y el minuto
-    const diagrama = dibujarDiagramaAcorde(acorde.corto, { ancho: 60, mini: true });
+    // Cuándo empieza: "0:04". Las notas, con décimas ("0:02.4"), porque cambian rápido
+    tiempo.textContent = formatearTiempo(elemento.inicio, { decimas: esNota });
+    // Diagrama chico (diagramas.js): cómo se toca el acorde, o dónde se toca la nota
+    // (la nota, según la afinación elegida en el Afinador)
+    const diagrama = esNota
+      ? dibujarDiagramaNota(posicionMasFacil(posicionesDeNota(elemento.numero, afinacionActual)), elemento.corto, { mini: true })
+      : dibujarDiagramaAcorde(elemento.corto, { ancho: 60, mini: true });
     fila.append(nombre, cifrado, diagrama, tiempo);
-    fila.title = acorde.completo;                // al mantener el dedo o el mouse: "La menor"
+    fila.title = elemento.completo;              // al mantener el dedo o el mouse: "La menor" o "Nota La (A3)"
     listaAcordes.append(fila);
   }
-  // Resumen con los acordes distintos, en el orden en que aparecen por primera vez.
+  // Resumen con los acordes y las notas distintas, en el orden en que aparecen por primera vez.
   // "new Set" guarda cada valor una sola vez (quita los repetidos).
-  const distintos = [...new Set(acordes.map((acorde) => acorde.corto))];
-  resumenCanciones.textContent = `Usa ${distintos.length} ${distintos.length === 1 ? "acorde" : "acordes"}: ${distintos.join(" · ")}`;
-  resumenCanciones.hidden = acordes.length === 0;
-  vacioCanciones.hidden = acordes.length > 0;
-  vacioCanciones.textContent = "No encontré acordes claros en este audio. Prueba con una guitarra sola, más cerca del micrófono.";
+  const distintos = (tipo) => [...new Set(elementos.filter((e) => (e.tipo || "acorde") === tipo).map((e) => e.corto))];
+  const acordes = distintos("acorde");
+  const notas = distintos("nota");
+  const partes = [];
+  if (acordes.length) partes.push(`${acordes.length} ${acordes.length === 1 ? "acorde" : "acordes"}: ${acordes.join(" · ")}`);
+  if (notas.length) partes.push(`${notas.length} ${notas.length === 1 ? "nota" : "notas"}: ${notas.join(" · ")}`);
+  resumenCanciones.textContent = "Usa " + partes.join(" — y ");
+  resumenCanciones.hidden = elementos.length === 0;
+  vacioCanciones.hidden = elementos.length > 0;
+  vacioCanciones.textContent = "No encontré notas ni acordes claros en este audio. Prueba con una guitarra sola, más cerca del micrófono.";
 }
 
 // ===== 6. Analizar =====
@@ -191,8 +214,8 @@ async function analizarAudio(archivo, origen) {
       });
       // Cada 40 ventanas actualizamos la barra y dejamos respirar a la pantalla
       if (ventanas.length % 40 === 0) {
-        mostrarAvance((ventanas.length / total) * 100);
-        mostrarEstadoCanciones(`Analizando «${origen}»… ${Math.round((ventanas.length / total) * 100)}%`);
+        mostrarAvance((ventanas.length / total) * 50);   // la primera mitad de la barra es de los acordes
+        mostrarEstadoCanciones(`Buscando acordes en «${origen}»… ${Math.round((ventanas.length / total) * 50)}%`);
         await pausaBreve();
       }
     }
@@ -201,10 +224,40 @@ async function analizarAudio(archivo, origen) {
     // juntamos los trozos iguales y quitamos los errores sueltos (las dos funciones en musica.js)
     const conAcordes = reconocerAcordesDeCancion(ventanas);
     const acordes = resumirAcordes(conAcordes, CANCIONES_SALTO / CANCIONES_FRECUENCIA);
+
+    // SEGUNDA PASADA: las notas sueltas (riffs y solos). Se buscan en el mismo audio,
+    // pero a 22050 muestras por segundo (CANCION_NOTA_FRECUENCIA, en musica.js), porque a
+    // 11025 YIN se equivocaba de octava en las notas agudas
+    const frecuenciaNotas = CANCION_NOTA_FRECUENCIA;
+    const paraNotas = normalizarVolumen(await decodificarAudio(datos, frecuenciaNotas)).subarray(0, CANCIONES_MAXIMO_SEGUNDOS * frecuenciaNotas);
+    // La cuerda más grave de la afinación elegida en el Afinador: no puede haber notas más graves
+    const notaMasGrave = Math.min(...afinacionActual.notas);
+    const lecturas = [];
+    for (let inicio = 0; inicio + CANCION_NOTA_VENTANA <= paraNotas.length; inicio += CANCION_NOTA_SALTO) {
+      lecturas.push({
+        tiempo: (inicio + CANCION_NOTA_VENTANA / 2) / frecuenciaNotas,               // el centro del trozo
+        numero: leerNotaDeVentana(paraNotas, inicio, frecuenciaNotas, notaMasGrave), // la nota o null (musica.js)
+      });
+      // Cada 400 trozos actualizamos la barra (la segunda mitad es de las notas)
+      if (lecturas.length % 400 === 0) {
+        const avance = 50 + 50 * (inicio / paraNotas.length);
+        mostrarAvance(avance);
+        mostrarEstadoCanciones(`Buscando notas en «${origen}»… ${Math.round(avance)}%`);
+        await pausaBreve();
+      }
+    }
+    // Juntamos acordes y notas en una sola lista, en el orden en que suenan (musica.js)
+    const elementos = mezclarNotasYAcordes(acordes, resumirNotas(lecturas));
+
     mostrarAvance(100);
-    mostrarAcordes(acordes);
+    mostrarAcordes(elementos);
     const recorte = duracion > CANCIONES_MAXIMO_SEGUNDOS ? ` (se analizaron los primeros ${formatearTiempo(CANCIONES_MAXIMO_SEGUNDOS)})` : "";
-    mostrarEstadoCanciones(`«${origen}» · ${formatearTiempo(duracion)} · ${acordes.length} ${acordes.length === 1 ? "cambio de acorde" : "cambios de acorde"}${recorte}`);
+    // Cuántos acordes y cuántas notas hay: "3 acordes y 8 notas"
+    const cuantos = (tipo, uno, varios) => {
+      const n = elementos.filter((e) => e.tipo === tipo).length;
+      return `${n} ${n === 1 ? uno : varios}`;
+    };
+    mostrarEstadoCanciones(`«${origen}» · ${formatearTiempo(duracion)} · ${cuantos("acorde", "acorde", "acordes")} y ${cuantos("nota", "nota", "notas")}${recorte}`);
   } catch {
     mostrarEstadoCanciones("No pude leer ese audio. Prueba con otro archivo (mp3, m4a o wav).");
   } finally {

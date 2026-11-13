@@ -173,19 +173,21 @@ function dibujarDiagramaAcorde(nombre, { ancho = 150, mini = false } = {}) {
 // un círculo rojo vacío.
 //   posicion: { cuerda, indice, traste } (sale de posicionMasFacil, en musica.js)
 //   nombre:   el nombre de la nota que va dentro del círculo ("Do")
-function dibujarDiagramaNota(posicion, nombre, { ancho = 150 } = {}) {
+//   mini:     true = versión chica (60 px) para las tarjetas de Canciones: solo el
+//             punto rojo, sin el nombre adentro (a ese tamaño no se leería)
+function dibujarDiagramaNota(posicion, nombre, { mini = false, ancho = mini ? 60 : 150 } = {}) {
   // Desde qué traste empieza el dibujo: si la nota está en los trastes 1 a 3, desde
   // el principio del mástil; si está más arriba, la nota queda en la 2ª fila del dibujo
   const inicio = posicion.traste <= 3 ? 1 : posicion.traste - 1;
 
   // Medidas. El margen es IGUAL a los dos lados: así el mástil queda centrado
   // (deja espacio a la izquierda para el número de traste cuando hace falta)
-  const margen = 22;
-  const arriba = 24;                                      // espacio arriba para la marca de cuerda al aire
+  const margen = mini ? 10 : 22;
+  const arriba = mini ? 12 : 24;                          // espacio arriba para la marca de cuerda al aire
   const separacionCuerdas = (ancho - 2 * margen) / 5;
   const separacionTrastes = separacionCuerdas * 1.25;
   const alto = arriba + DIAGRAMA_FILAS * separacionTrastes + 4;
-  const radio = separacionCuerdas * 0.42;                  // un poco más grande que los dedos: lleva el nombre adentro
+  const radio = separacionCuerdas * (mini ? 0.36 : 0.42);  // en grande, un poco más que los dedos: lleva el nombre adentro
 
   // Posición horizontal de cada cuerda (0 = 6ª) y vertical del centro de cada traste
   const xCuerda = (indice) => margen + indice * separacionCuerdas;
@@ -194,7 +196,7 @@ function dibujarDiagramaNota(posicion, nombre, { ancho = 150 } = {}) {
   // Descripción en palabras para lectores de pantalla
   const lugar = posicion.traste === 0 ? "al aire" : `traste ${posicion.traste}`;
   const svg = crearSVGDiagrama("svg", {
-    class: "diagrama diagrama-nota",
+    class: mini ? "diagrama diagrama-nota diagrama-mini" : "diagrama diagrama-nota",
     width: ancho,
     height: alto,
     viewBox: `0 0 ${ancho} ${alto}`,
@@ -210,9 +212,10 @@ function dibujarDiagramaNota(posicion, nombre, { ancho = 150 } = {}) {
 
   // Cejuela si el dibujo empieza en el traste 1; si no, el número del traste a la izquierda
   if (inicio === 1) {
-    svg.append(crearSVGDiagrama("rect", { class: "diagrama-cejuela", x: xCuerda(0) - 1, y: arriba - 4, width: xCuerda(5) - xCuerda(0) + 2, height: 4, rx: 1 }));
+    const grosor = mini ? 3 : 4; // la cejuela es más finita en la versión chica
+    svg.append(crearSVGDiagrama("rect", { class: "diagrama-cejuela", x: xCuerda(0) - 1, y: arriba - grosor, width: xCuerda(5) - xCuerda(0) + 2, height: grosor, rx: 1 }));
   } else {
-    svg.append(crearSVGDiagrama("text", { class: "diagrama-numero-traste", x: xCuerda(0) - 8, y: yTraste(inicio) }, inicio));
+    svg.append(crearSVGDiagrama("text", { class: "diagrama-numero-traste", x: xCuerda(0) - (mini ? 3 : 8), y: yTraste(inicio) }, inicio));
   }
 
   // Cuerdas: líneas verticales, las graves más gruesas
@@ -221,17 +224,17 @@ function dibujarDiagramaNota(posicion, nombre, { ancho = 150 } = {}) {
       class: "diagrama-cuerda",
       x1: xCuerda(indice), x2: xCuerda(indice),
       y1: arriba, y2: arriba + DIAGRAMA_FILAS * separacionTrastes,
-      "stroke-width": 2.2 - indice * 0.25,
+      "stroke-width": (mini ? 1.4 : 2.2) - indice * (mini ? 0.12 : 0.25),
     }));
   }
 
   if (posicion.traste === 0) {
     // Cuerda al aire: círculo rojo vacío arriba de esa cuerda
-    svg.append(crearSVGDiagrama("circle", { class: "diagrama-aire", cx: xCuerda(posicion.indice), cy: arriba - 11, r: 6 }));
+    svg.append(crearSVGDiagrama("circle", { class: "diagrama-aire", cx: xCuerda(posicion.indice), cy: arriba - (mini ? 6 : 11), r: mini ? 3.5 : 6 }));
   } else {
-    // Cuerda apretada: círculo rojo con el nombre de la nota adentro
+    // Cuerda apretada: círculo rojo (en grande, con el nombre de la nota adentro)
     svg.append(crearSVGDiagrama("circle", { class: "diagrama-dedo", cx: xCuerda(posicion.indice), cy: yTraste(posicion.traste), r: radio }));
-    svg.append(crearSVGDiagrama("text", { class: "diagrama-nota-nombre", x: xCuerda(posicion.indice), y: yTraste(posicion.traste) }, nombre));
+    if (!mini) svg.append(crearSVGDiagrama("text", { class: "diagrama-nota-nombre", x: xCuerda(posicion.indice), y: yTraste(posicion.traste) }, nombre));
   }
 
   return svg;
