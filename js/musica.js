@@ -38,13 +38,66 @@ const UMBRAL_SILENCIO = 0.01;
 // (sus armónicos se parecen a un acorde mayor). 0,82 separa bien los dos casos.
 const SIMILITUD_MINIMA_ACORDE = 0.82;
 
-// Los tipos de acorde que reconocemos. "intervalos" = cuántos semitonos hay
-// desde la nota principal (la "raíz") hasta cada nota del acorde.
-// Ejemplo: Do mayor = Do (0) + Mi (4 semitonos más arriba) + Sol (7).
+// ===== 1b. Los acordes y cómo se escriben sus notas =====
+//
+// Una misma tecla negra del piano tiene dos nombres: Sol♯ y La♭ suenan igual.
+// En un acorde, la regla de la teoría musical es CONTAR LETRAS desde la raíz:
+// en Fa menor, la tercera es "la letra La" (Fa, Sol, La), y como debe estar 3
+// semitonos arriba de Fa, es La♭ (no Sol♯). Así Fam = Fa · La♭ · Do.
+
+// Las 7 letras musicales, en orden, y en qué número (de 0 a 11) cae cada una sin ♯ ni ♭
+const LETRAS = ["Do", "Re", "Mi", "Fa", "Sol", "La", "Si"];
+const LETRAS_INGLES = ["C", "D", "E", "F", "G", "A", "B"];
+const NOTA_DE_LETRA = [0, 2, 4, 5, 7, 9, 11];
+// Qué signo se escribe según cuánto hay que subir (+) o bajar (−) la letra.
+// (𝄪 = doble sostenido y 𝄫 = doble bemol: con los nombres de abajo nunca aparecen)
+const ALTERACIONES = { "-2": "𝄫", "-1": "♭", 0: "", 1: "♯", 2: "𝄪" };
+
+// Cómo se llama la RAÍZ de cada acorde, como en los cancioneros, para cada número
+// de nota (0 = Do ... 11 = Si). Cada par es [letra, alteración]: [3, 1] = Fa♯.
+// Mayores con bemol: Mi♭, La♭ y Si♭ (nadie escribe "La♯ mayor": tendría un Do𝄪).
+const RAICES_MAYOR = [[0, 0], [0, 1], [1, 0], [2, -1], [2, 0], [3, 0], [3, 1], [4, 0], [5, -1], [5, 0], [6, -1], [6, 0]];
+// Menores: igual que antes salvo Si♭m (en vez de La♯m)
+const RAICES_MENOR = [[0, 0], [0, 1], [1, 0], [1, 1], [2, 0], [3, 0], [3, 1], [4, 0], [4, 1], [5, 0], [6, -1], [6, 0]];
+
+// Los tipos de acorde que reconocemos:
+//   intervalos = cuántos semitonos hay desde la nota principal (la "raíz") hasta
+//                cada nota. Do mayor = Do (0) + Mi (4 semitonos arriba) + Sol (7).
+//   letras     = cuántas LETRAS hay que avanzar desde la raíz para nombrar cada nota:
+//                la tercera, 2 letras (Fa → Sol → La); la quinta, 4 (Fa → ... → Do).
+//   raices     = cómo se llama la raíz de ese tipo de acorde (las tablas de arriba).
 const TIPOS_ACORDE = [
-  { tipo: "mayor", intervalos: [0, 4, 7], sufijo: "", sufijoIngles: "" },
-  { tipo: "menor", intervalos: [0, 3, 7], sufijo: "m", sufijoIngles: "m" },
+  { tipo: "mayor", intervalos: [0, 4, 7], letras: [0, 2, 4], raices: RAICES_MAYOR, sufijo: "", sufijoIngles: "" },
+  { tipo: "menor", intervalos: [0, 3, 7], letras: [0, 2, 4], raices: RAICES_MENOR, sufijo: "m", sufijoIngles: "m" },
 ];
+
+// Escribe las notas de un acorde contando letras desde la raíz.
+// Recibe la raíz (número de 0 a 11) y el tipo. Devuelve una lista de { nombre, ingles }.
+// Ejemplo: (5, menor) → [Fa/F, La♭/A♭, Do/C]
+function deletrearAcorde(raiz, tipo) {
+  const letraRaiz = tipo.raices[raiz][0]; // con qué letra se escribe la raíz (Fa = 3)
+  return tipo.intervalos.map((intervalo, i) => {
+    const letra = (letraRaiz + tipo.letras[i]) % 7;          // la letra de esta nota (Fa + 2 letras = La)
+    const buscada = (raiz + intervalo) % 12;                 // la nota que tiene que sonar (Fa + 3 semitonos = 8)
+    // Cuánto hay que subir o bajar esa letra para llegar a la nota buscada (La = 9 → 8: bajar 1 = ♭).
+    // "+ 18 ... − 6" deja el resultado entre −6 y +5 aunque se pase de Si a Do
+    const alteracion = ((buscada - NOTA_DE_LETRA[letra] + 18) % 12) - 6;
+    return { nombre: LETRAS[letra] + ALTERACIONES[alteracion], ingles: LETRAS_INGLES[letra] + ALTERACIONES[alteracion] };
+  });
+}
+
+// Arma el objeto que describe un acorde a partir de su raíz (0 = Do) y su tipo.
+// Ejemplo: (5, menor) → { corto: "Fam", completo: "Fa menor", ingles: "Fm", notas: ["Fa", "La♭", "Do"], ... }
+function armarAcorde(raiz, tipo, similitud) {
+  const notas = deletrearAcorde(raiz, tipo);
+  return {
+    corto: notas[0].nombre + tipo.sufijo,               // "Fam" (la primera nota es la raíz)
+    completo: `${notas[0].nombre} ${tipo.tipo}`,        // "Fa menor"
+    ingles: notas[0].ingles + tipo.sufijoIngles,        // "Fm"
+    notas: notas.map((nota) => nota.nombre),            // ["Fa", "La♭", "Do"]
+    similitud,
+  };
+}
 
 // ===== 2. Números y notas =====
 
@@ -517,17 +570,12 @@ function detectarAcorde(croma) {
       const similitud = sumaDentro / (norma * Math.sqrt(notas.length));
       // Pequeño desempate: si la raíz suena fuerte, el acorde es más probable
       const puntaje = similitud + 0.03 * croma[raiz];
-      if (!mejor || puntaje > mejor.puntaje) mejor = { raiz, tipo, notas, similitud, puntaje };
+      if (!mejor || puntaje > mejor.puntaje) mejor = { raiz, tipo, similitud, puntaje };
     }
   }
 
-  return {
-    corto: NOMBRES_NOTAS[mejor.raiz] + mejor.tipo.sufijo,           // "Lam"
-    completo: `${NOMBRES_NOTAS[mejor.raiz]} ${mejor.tipo.tipo}`,     // "La menor"
-    ingles: NOMBRES_INGLES[mejor.raiz] + mejor.tipo.sufijoIngles,    // "Am"
-    notas: mejor.notas.map((nota) => NOMBRES_NOTAS[nota]),           // ["La", "Do", "Mi"]
-    similitud: mejor.similitud,
-  };
+  // Nombre y notas bien escritas (contando letras desde la raíz): "Fam" = Fa · La♭ · Do
+  return armarAcorde(mejor.raiz, mejor.tipo, mejor.similitud);
 }
 
 // ===== 6. Analizar una CANCIÓN (un audio completo) =====
@@ -624,7 +672,7 @@ function resumirAcordes(ventanas, duracionVentana, { minimoSegundos = 0.9 } = {}
 // En el navegador "module" no existe, así que esta línea no hace nada allí.
 if (typeof module !== "undefined") {
   module.exports = {
-    NOMBRES_NOTAS, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, frecuenciaDeNota, nombreDeNota, AFINACIONES, cuerdasDeAfinacion, posicionesDeNota, posicionMasFacil, centsEntre,
+    NOMBRES_NOTAS, TIPOS_ACORDE, armarAcorde, UMBRAL_SILENCIO, SIMILITUD_MINIMA_ACORDE, CLARIDAD_PARA_AFINAR, formatearHz, calcularVolumen, frecuenciaANota, frecuenciaDeNota, nombreDeNota, AFINACIONES, cuerdasDeAfinacion, posicionesDeNota, posicionMasFacil, centsEntre,
     detectarTono, diferenciaYin, mediana, crearSeguidorDeTono, crearDetectorDeRuido, fft, espectro, cromaDesdeEspectro, detectarAcorde, analizarVentana, reconocerAcordesDeCancion, resumirAcordes, SIMILITUD_MINIMA_CANCION,
   };
 }

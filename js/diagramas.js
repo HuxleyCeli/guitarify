@@ -26,14 +26,14 @@ const FORMAS_ACORDES = {
   "Do":   { trastes: [-1, 3, 2, 0, 1, 0], dedos: [0, 3, 2, 0, 1, 0] },
   "Do♯":  { trastes: [-1, 4, 6, 6, 6, 4], dedos: [0, 1, 2, 3, 4, 1], cejilla: 4 },
   "Re":   { trastes: [-1, -1, 0, 2, 3, 2], dedos: [0, 0, 0, 1, 3, 2] },
-  "Re♯":  { trastes: [-1, 6, 8, 8, 8, 6], dedos: [0, 1, 2, 3, 4, 1], cejilla: 6 },
+  "Mi♭":  { trastes: [-1, 6, 8, 8, 8, 6], dedos: [0, 1, 2, 3, 4, 1], cejilla: 6 },
   "Mi":   { trastes: [0, 2, 2, 1, 0, 0], dedos: [0, 2, 3, 1, 0, 0] },
   "Fa":   { trastes: [1, 3, 3, 2, 1, 1], dedos: [1, 3, 4, 2, 1, 1], cejilla: 1 },
   "Fa♯":  { trastes: [2, 4, 4, 3, 2, 2], dedos: [1, 3, 4, 2, 1, 1], cejilla: 2 },
   "Sol":  { trastes: [3, 2, 0, 0, 0, 3], dedos: [2, 1, 0, 0, 0, 3] },
-  "Sol♯": { trastes: [4, 6, 6, 5, 4, 4], dedos: [1, 3, 4, 2, 1, 1], cejilla: 4 },
+  "La♭":  { trastes: [4, 6, 6, 5, 4, 4], dedos: [1, 3, 4, 2, 1, 1], cejilla: 4 },
   "La":   { trastes: [-1, 0, 2, 2, 2, 0], dedos: [0, 0, 1, 2, 3, 0] },
-  "La♯":  { trastes: [-1, 1, 3, 3, 3, 1], dedos: [0, 1, 2, 3, 4, 1], cejilla: 1 },
+  "Si♭":  { trastes: [-1, 1, 3, 3, 3, 1], dedos: [0, 1, 2, 3, 4, 1], cejilla: 1 },
   "Si":   { trastes: [-1, 2, 4, 4, 4, 2], dedos: [0, 1, 2, 3, 4, 1], cejilla: 2 },
   // --- Menores ---
   "Dom":   { trastes: [-1, 3, 5, 5, 4, 3], dedos: [0, 1, 3, 4, 2, 1], cejilla: 3 },
@@ -46,7 +46,7 @@ const FORMAS_ACORDES = {
   "Solm":  { trastes: [3, 5, 5, 3, 3, 3], dedos: [1, 3, 4, 1, 1, 1], cejilla: 3 },
   "Sol♯m": { trastes: [4, 6, 6, 4, 4, 4], dedos: [1, 3, 4, 1, 1, 1], cejilla: 4 },
   "Lam":   { trastes: [-1, 0, 2, 2, 1, 0], dedos: [0, 0, 2, 3, 1, 0] },
-  "La♯m":  { trastes: [-1, 1, 3, 3, 2, 1], dedos: [0, 1, 3, 4, 2, 1], cejilla: 1 },
+  "Si♭m":  { trastes: [-1, 1, 3, 3, 2, 1], dedos: [0, 1, 3, 4, 2, 1], cejilla: 1 },
   "Sim":   { trastes: [-1, 2, 4, 4, 3, 2], dedos: [0, 1, 3, 4, 2, 1], cejilla: 2 },
 };
 
