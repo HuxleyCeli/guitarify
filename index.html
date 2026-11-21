@@ -165,14 +165,17 @@
           <span class="pua menu-pua" aria-hidden="true"><svg class="icono"><use href="#icono-casete"/></svg></span>
           <span class="menu-textos">
             <span class="menu-titulo">Canciones</span>
-            <span class="menu-detalle">Saca los acordes de una canción, en orden</span>
+            <span class="menu-detalle">Saca las notas y acordes de una canción, en orden</span>
           </span>
           <svg class="icono menu-entrar" aria-hidden="true"><use href="#icono-entrar"/></svg>
         </button>
       </nav>
 
-      <!-- Pie de página: recuerda en qué etapa del proyecto estamos -->
-      <p class="pie">Versión de prueba · Entrega 2</p>
+      <!-- Pie de página: dos cosas reales que vale la pena saber de la app.
+           (Todo se analiza dentro del teléfono: no hay servidor al que se envíe el audio) -->
+      <!-- Cada frase va en su <span>: el CSS no deja que se corten por la mitad,
+           así que si no caben en una línea, se separan justo en el "·" -->
+      <p class="pie"><span>Funciona sin internet ·</span> <span>Tu audio no sale del teléfono</span></p>
     </section>
 
     <!-- ===================== PANTALLA: AFINADOR ===================== -->
@@ -192,9 +195,6 @@
 
       <!-- Panel metálico que contiene el medidor, como el frente de un amplificador -->
       <div class="panel-amp con-tornillos">
-        <!-- Sello rojo "EJEMPLO": se ve solo con el micrófono apagado, porque ahí la
-             aguja y la lectura muestran datos de ejemplo. js/afinador.js lo esconde al escuchar -->
-        <span id="afinador-sello" class="sello-ejemplo">Ejemplo</span>
 
         <!--
           MEDIDOR DE AGUJA (VU meter)
@@ -271,7 +271,9 @@
         <!-- Detalle: número de cuerda, nombre en inglés y frecuencia -->
         <p id="afinador-detalle" class="nota-detalle">6ª cuerda · E2 · 82,41 Hz</p>
         <!-- Estado: cuántos cents está desafinada y qué hacer con la clavija -->
-        <p id="afinador-estado" class="estado-afinacion">−12 cents · Baja: aprieta un poco la clavija</p>
+        <!-- Con el micrófono apagado la aguja queda en reposo y este texto invita a encenderlo
+             (js/afinador.js lo cambia apenas empieza a escuchar) -->
+        <p id="afinador-estado" class="estado-afinacion" data-estado="esperando">Enciende el micrófono para empezar a afinar</p>
       </div>
 
       <!-- Selector de cuerdas -->
@@ -300,7 +302,7 @@
         <span class="boton-texto">Encender micrófono</span>
       </button>
       <!-- Texto de ayuda: js/afinador.js lo cambia según el micrófono esté encendido o no -->
-      <p id="afinador-ayuda" class="texto-ayuda">La aguja y la lectura son de ejemplo. Enciende el micrófono para afinar de verdad.</p>
+      <p id="afinador-ayuda" class="texto-ayuda">Enciende el micrófono, toca una cuerda al aire y gira la clavija hasta que se encienda la luz «Afinada».</p>
     </section>
 
     <!-- ===================== PANTALLA: NOTAS Y ACORDES ===================== -->

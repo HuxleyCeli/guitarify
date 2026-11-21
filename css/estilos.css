@@ -6,7 +6,7 @@
     2. Fuente descargada (Anton)
     3. Base: reglas generales para toda la página
     4. Pantallas y barra superior
-    5. Componentes que se repiten (uñetas, paneles, botones, sellos, aviso)
+    5. Componentes que se repiten (uñetas, paneles, botones, ayuda, aviso)
     6. Pantalla de Inicio
     7. Pantalla del Afinador (medidor de aguja, lámpara, cuerdas)
     8. Pantalla de Notas y acordes
@@ -325,7 +325,7 @@ button.pua:active {
 
 /* Panel de amplificador: fondo de cuero oscuro con borde dorado ("piping") */
 .panel-amp {
-  position: relative;        /* para ubicar adentro el sello de ejemplo y los tornillos */
+  position: relative;        /* para ubicar adentro los tornillos */
   padding: 22px 18px;
   border-radius: calc(var(--radio) + 4px);
   border: 2px solid var(--color-dorado-oscuro);
@@ -429,28 +429,11 @@ button:disabled {
   cursor: progress;          /* en una compu, el cursor muestra que algo se está procesando */
 }
 
-/* --- 5d. SELLOS Y NOTAS DE EJEMPLO --- */
+/* --- 5d. TEXTOS DE AYUDA --- */
+/* (Aquí antes estaba el sello rojo "EJEMPLO" del afinador. Se quitó en la versión
+   final: la app ya no muestra datos inventados, así que no hace falta marcarlos) */
 
-/* Sello rojo "EJEMPLO", inclinado como un timbre de goma, en la esquina de un panel */
-.sello-ejemplo {
-  position: absolute;
-  top: -11px;                /* sobresale un poco por arriba del panel */
-  right: 18px;
-  z-index: 2;
-  padding: 3px 10px 2px;
-  border-radius: 4px;
-  background: var(--color-rojo);
-  color: var(--color-blanco);
-  font-family: var(--fuente-titulos);
-  font-size: 0.8rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  transform: rotate(4deg);   /* inclinado 4 grados */
-  /* Dos sombras sin difuminar = doble borde (uno del color del fondo y otro rojo), estilo sello */
-  box-shadow: 0 0 0 2px var(--color-fondo), 0 0 0 3.5px var(--color-rojo);
-}
-
-/* Texto chico de ayuda al final de cada pantalla (explica cómo usarla o que algo es de ejemplo) */
+/* Texto chico de ayuda al final de cada pantalla (explica cómo usarla) */
 .texto-ayuda {
   font-size: 0.82rem;
   color: var(--color-texto-suave);
@@ -745,6 +728,11 @@ button:disabled {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--color-texto-suave);
+}
+
+/* Cada frase del pie queda entera ("nowrap" = no cortar esta frase en dos líneas) */
+.pie span {
+  white-space: nowrap;
 }
 
 

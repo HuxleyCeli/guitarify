@@ -3,7 +3,7 @@
 // La pantalla del AFINADOR.
 //   - Tiene un menú de AFINACIONES (Estándar, Drop D...) y recuerda la última elegida.
 //   - Crea las 6 uñetas de las cuerdas a partir de la afinación elegida.
-//   - Con el micrófono APAGADO muestra una afinación de EJEMPLO (con el sello "Ejemplo").
+//   - Con el micrófono APAGADO la aguja queda en reposo y la pantalla invita a encenderlo.
 //   - Con el micrófono ENCENDIDO escucha la guitarra, reconoce qué cuerda suena
 //     (modo automático) y mueve la aguja según qué tan afinada está.
 // Usa herramientas de otros archivos: musica.js (frecuencias y notas),
@@ -22,8 +22,6 @@ let CUERDAS = cuerdasDeAfinacion(afinacionActual);
 // Nombre con el que el navegador recuerda la última afinación elegida (localStorage)
 const CLAVE_AFINACION_GUARDADA = "guitarify-afinacion";
 
-// Valor de EJEMPLO que muestra el medidor mientras el micrófono está apagado
-const CENTS_DE_EJEMPLO = -12;
 // Posición de descanso de la aguja cuando no suena nada (todo a la izquierda, como un medidor real)
 const CENTS_EN_REPOSO = -50;
 // Claridad (de 0 a 1) para saber que una cuerda está sonando. Menos = ruido o
@@ -51,7 +49,6 @@ const contenedorCuerdas = document.getElementById("cuerdas");
 const textoNota = document.getElementById("afinador-nota");
 const textoDetalle = document.getElementById("afinador-detalle");
 const textoEstado = document.getElementById("afinador-estado");
-const selloAfinador = document.getElementById("afinador-sello");
 const nivelAfinador = document.getElementById("afinador-nivel");
 const textoModo = document.getElementById("afinador-modo");
 const botonAutomatico = document.getElementById("afinador-auto");
@@ -94,6 +91,13 @@ function mostrarAfinacion(cents) {
   const descripcion = describirAfinacion(cents);
   textoEstado.dataset.estado = descripcion.estado;   // el CSS usa data-estado para el color
   textoEstado.textContent = `${formatearCents(cents)} · ${descripcion.consejo}`;
+}
+
+// Con el micrófono apagado: aguja en reposo y una invitación a encenderlo
+function mostrarApagado() {
+  moverAguja(CENTS_EN_REPOSO);                       // aguja a la izquierda, como un medidor sin señal
+  textoEstado.dataset.estado = "esperando";          // mismo color tranquilo que "esperando"
+  textoEstado.textContent = "Enciende el micrófono para empezar a afinar";
 }
 
 // Deja la aguja en reposo cuando no suena nada
@@ -196,14 +200,13 @@ function procesarSonidoAfinador({ volumen, tono }) {
   }
 }
 
-// Cambia la pantalla entre "modo ejemplo" (micrófono apagado) y "modo escucha"
+// Cambia la pantalla entre "micrófono apagado" (aguja en reposo) y "modo escucha"
 function prepararPantallaAfinador(escuchando) {
-  selloAfinador.hidden = escuchando;
   botonMicAfinador.setAttribute("aria-pressed", String(escuchando));
   botonMicAfinador.querySelector(".boton-texto").textContent = escuchando ? "Apagar micrófono" : "Encender micrófono";
   ayudaAfinador.textContent = escuchando
     ? "Toca una cuerda a la vez y déjala sonar. La barra de «Señal» muestra que el micrófono te escucha."
-    : "La aguja y la lectura son de ejemplo. Enciende el micrófono para afinar de verdad.";
+    : "Enciende el micrófono, toca una cuerda al aire y gira la clavija hasta que se encienda la luz «Afinada».";
   nivelAfinador.style.setProperty("--nivel", "0%");
   seguidor.reiniciar();
   detectorRuido.reiniciar();
@@ -211,8 +214,8 @@ function prepararPantallaAfinador(escuchando) {
     modoAutomatico = true;
     mostrarEspera();
   } else {
-    elegirCuerda(cuerdaElegida);
-    mostrarAfinacion(CENTS_DE_EJEMPLO);   // vuelve el EJEMPLO
+    elegirCuerda(cuerdaElegida);          // muestra la nota de la cuerda elegida (dato real, no inventado)
+    mostrarApagado();                     // aguja en reposo + "Enciende el micrófono..."
   }
   mostrarModo();
 }
@@ -308,4 +311,4 @@ botonAutomatico.addEventListener("click", () => {
   modoAutomatico = true;
   mostrarModo();
 });
-prepararPantallaAfinador(false); // empieza en modo EJEMPLO, con la 6ª cuerda elegida
+prepararPantallaAfinador(false); // empieza con el micrófono apagado y la 6ª cuerda elegida
