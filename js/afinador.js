@@ -104,7 +104,7 @@ function mostrarApagado() {
 function mostrarEspera() {
   moverAguja(CENTS_EN_REPOSO);
   textoEstado.dataset.estado = "esperando";
-  textoEstado.textContent = "Toca una cuerda al aire, cerca del teléfono";
+  textoEstado.textContent = "Toca una cuerda al aire, cerca del micrófono";
 }
 
 // Deja la aguja en reposo y explica que hay sonido, pero no se distingue una cuerda.
@@ -112,7 +112,7 @@ function mostrarEspera() {
 function mostrarRuido() {
   moverAguja(CENTS_EN_REPOSO);
   textoEstado.dataset.estado = "ruido";
-  textoEstado.textContent = "Hay mucho ruido: toca una sola cuerda, cerca del teléfono";
+  textoEstado.textContent = "Hay mucho ruido: toca una sola cuerda, cerca del micrófono";
 }
 
 // Actualiza el texto que explica el modo (automático o manual)

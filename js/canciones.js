@@ -325,7 +325,7 @@ async function empezarGrabacion() {
     grabadora.start();
     inicioGrabacion = performance.now();
     prepararPantallaGrabacion(true);
-    mostrarEstadoCanciones("Grabando… toca la canción cerca del teléfono y luego «Detener».");
+    mostrarEstadoCanciones("Grabando… toca la canción cerca del micrófono y luego «Detener».");
   } catch (error) {
     mostrarAviso(mensajeErrorMicrofono(error));
   }

@@ -11,7 +11,8 @@
     7. Pantalla del Afinador (medidor de aguja, lámpara, cuerdas)
     8. Pantalla de Notas y acordes
     9. Pantalla de Canciones
-   10. Accesibilidad: menos movimiento
+   10. Pantallas grandes: iPad y computadora (2 columnas)
+   11. Accesibilidad: menos movimiento
 */
 
 
@@ -75,7 +76,7 @@
   --forma-pua: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 110'%3E%3Cpath d='M50 108C38 100 4 62 2 34 1 12 22 2 50 2s49 10 48 32c-2 28-36 66-48 74z'/%3E%3C/svg%3E");
 
   /* --- 1f. MEDIDAS que se repiten --- */
-  --ancho-app: 480px;        /* ancho máximo: en una compu, la app se ve como una columna de teléfono */
+  --ancho-app: 480px;        /* ancho máximo en teléfono (en iPad y computadora cambia: ver sección 10) */
   --radio: 14px;             /* redondeo de las esquinas de paneles y botones */
   --margen-lateral: 16px;    /* espacio a los costados de la pantalla */
   --transicion: 160ms ease;  /* velocidad de las animaciones cortas (160 milésimas de segundo) */
@@ -1383,7 +1384,112 @@ button:disabled {
 }
 
 
-/* ==================== 10. ACCESIBILIDAD: MENOS MOVIMIENTO ==================== */
+/* ==================== 10. PANTALLAS GRANDES (IPAD Y COMPUTADORA) ==================== */
+
+/* Todo lo de arriba está pensado para el TELÉFONO (diseño "mobile-first"). Aquí solo
+   agregamos cambios para pantallas más anchas, con "@media (min-width: ...)":
+   "aplica estas reglas solo si la pantalla mide AL MENOS este ancho".
+   En un teléfono vertical ninguna de estas reglas se usa (salvo la primera, que no
+   cambia nada a la vista). */
+
+/* En index.html, las partes de cada pantalla de función van en dos cajas:
+   .columna-izq y .columna-der. En el teléfono esas cajas "no existen" para el diseño:
+   "display: contents" hace que sus hijos se acomoden como si la caja no estuviera,
+   así que todo sigue en una sola columna, en el mismo orden de siempre. */
+.columna {
+  display: contents;
+}
+
+/* Desde 520px (más ancho que un teléfono vertical) la app ya no llena la pantalla.
+   La barra de arriba (uñeta + título) tiene su propio fondo "de vidrio"; si midiera solo
+   lo que la columna, se vería una FRANJA más oscura. Por eso la estiramos hasta los dos
+   bordes de la pantalla: así el fondo es parejo de lado a lado, como en el teléfono. */
+@media (min-width: 520px) {
+  body {
+    overflow-x: clip;        /* "recortar": que la barra estirada nunca cree un scroll hacia el costado */
+  }
+  .barra-superior {
+    /* 100vw = ancho de la pantalla; 100% = ancho de la app. La mitad de la diferencia es
+       lo que sobra a cada lado: con ese margen NEGATIVO la barra llega hasta el borde... */
+    margin-inline: calc((100% - 100vw) / 2);
+    /* ...y con un relleno igual (más los 10px de siempre), la uñeta y el título no se mueven */
+    padding-inline: calc((100vw - 100%) / 2 + 10px - var(--margen-lateral));
+  }
+}
+
+/* Desde 720px (iPad vertical, iPad horizontal y computadora): 2 COLUMNAS.
+   Así todo cabe a la vista, sin tener que bajar (por ejemplo, el medidor y el botón
+   del micrófono del afinador se ven a la vez). */
+@media (min-width: 720px) {
+  :root {
+    --ancho-app: 1180px;     /* la app puede ser mucho más ancha (antes: 480px, una columna de teléfono) */
+  }
+
+  /* Las 3 pantallas de funciones: una cuadrícula ("grid") de 2 columnas iguales ("1fr 1fr") */
+  .pantalla:not(.pantalla-inicio) {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 40px;        /* espacio entre las dos columnas */
+    row-gap: 20px;
+    align-items: start;      /* cada columna mide lo que necesita (no se estiran para quedar iguales) */
+  }
+  /* La barra de arriba ocupa las 2 columnas: desde la primera línea ("1") hasta la última ("-1") */
+  .pantalla > .barra-superior {
+    grid-column: 1 / -1;
+  }
+  /* Ahora las dos cajas SÍ existen: cada una apila sus partes, como el teléfono */
+  .columna {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;            /* deja que la columna se achique: sin esto, un texto largo podría ensancharla */
+  }
+  /* Canciones: los botones Grabar / Elegir audio quedan a la vista mientras bajas por una
+     lista larga ("sticky" = se pegan arriba, justo debajo de la barra de 90px) */
+  #pantalla-canciones .columna-izq {
+    position: sticky;
+    top: 90px;
+  }
+  /* Los textos de ayuda, un poco más grandes (se leen desde más lejos) */
+  .texto-ayuda {
+    font-size: 0.9rem;
+  }
+
+  /* --- Inicio: el cartel arriba y las 3 funciones lado a lado, como tarjetas --- */
+  .pantalla-inicio .cartel,
+  .pantalla-inicio .cuerdas-deco {
+    width: min(100%, 760px); /* "min" elige el menor: 760px, o menos si la pantalla es más chica */
+    align-self: center;      /* centrados */
+  }
+  .pantalla-inicio .logo {
+    font-size: 6.4rem;       /* el nombre, más grande */
+  }
+  .pantalla-inicio .lema {
+    font-size: 1.3rem;       /* y el lema, acompañándolo */
+  }
+  .menu {
+    grid-template-columns: repeat(3, 1fr); /* 3 columnas iguales: una por función */
+    gap: 22px;
+  }
+  .boton-menu {
+    grid-template-columns: 1fr; /* dentro de la tarjeta, todo en una columna: uñeta, título, detalle */
+    justify-items: center;
+    align-content: start;
+    text-align: center;
+    padding: 26px 20px 24px;
+    gap: 12px;
+  }
+  .boton-menu .menu-entrar {
+    display: none;           /* la flechita sobra: toda la tarjeta es el botón */
+  }
+  .menu-pua {
+    --pua-ancho: 84px;       /* uñeta más grande */
+    font-size: 2.1rem;       /* y su ícono también */
+  }
+}
+
+
+/* ==================== 11. ACCESIBILIDAD: MENOS MOVIMIENTO ==================== */
 
 /* Algunas personas activan en su teléfono "reducir movimiento" (por mareos,
    por ejemplo). Si es así, quitamos las animaciones: los cambios pasan al instante. */
