@@ -101,9 +101,10 @@ function armarAcorde(raiz, tipo, similitud) {
 
 // ===== 2. Números y notas =====
 
-// Escribe una frecuencia al estilo hispano, con coma decimal: 82.41 → "82,41 Hz"
-function formatearHz(frecuencia, decimales = 2) {
-  const texto = frecuencia.toLocaleString("es", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
+// Escribe una frecuencia al estilo hispano, con coma decimal: 82.41 → "82,41 Hz".
+// Con idioma "en", al estilo inglés, con punto decimal: "82.41 Hz".
+function formatearHz(frecuencia, decimales = 2, idioma = "es") {
+  const texto = frecuencia.toLocaleString(idioma === "en" ? "en" : "es", { minimumFractionDigits: decimales, maximumFractionDigits: decimales });
   return texto + " Hz";
 }
 
@@ -169,12 +170,13 @@ function nombreDeNota(numero, { bemoles = false } = {}) {
 // fina), como NÚMERO de nota (sistema MIDI: cada semitono suma 1; Mi2 = 40, La2 = 45).
 // Así no escribimos frecuencias a mano: frecuenciaDeNota (arriba) las calcula.
 // Para agregar una afinación, basta con agregar una línea aquí.
+// "nombreIngles" = cómo se llama en inglés (lo muestra el menú cuando la app está en inglés).
 const AFINACIONES = [
-  { id: "estandar", nombre: "Estándar", notas: [40, 45, 50, 55, 59, 64] },                       // Mi La Re Sol Si Mi
-  { id: "drop-d", nombre: "Drop D", notas: [38, 45, 50, 55, 59, 64] },                           // Re La Re Sol Si Mi (la 6ª, un tono abajo)
-  { id: "medio-tono", nombre: "Medio tono abajo", notas: [39, 44, 49, 54, 58, 63], bemoles: true }, // Mi♭ La♭ Re♭ Sol♭ Si♭ Mi♭
-  { id: "un-tono", nombre: "Un tono abajo", notas: [38, 43, 48, 53, 57, 62] },                   // Re Sol Do Fa La Re
-  { id: "sol-abierto", nombre: "Sol abierto", notas: [38, 43, 50, 55, 59, 62] },                 // Re Sol Re Sol Si Re (al aire suena un acorde de Sol)
+  { id: "estandar", nombre: "Estándar", nombreIngles: "Standard", notas: [40, 45, 50, 55, 59, 64] },                        // Mi La Re Sol Si Mi
+  { id: "drop-d", nombre: "Drop D", nombreIngles: "Drop D", notas: [38, 45, 50, 55, 59, 64] },                              // Re La Re Sol Si Mi (la 6ª, un tono abajo)
+  { id: "medio-tono", nombre: "Medio tono abajo", nombreIngles: "Half step down", notas: [39, 44, 49, 54, 58, 63], bemoles: true }, // Mi♭ La♭ Re♭ Sol♭ Si♭ Mi♭
+  { id: "un-tono", nombre: "Un tono abajo", nombreIngles: "Whole step down", notas: [38, 43, 48, 53, 57, 62] },              // Re Sol Do Fa La Re
+  { id: "sol-abierto", nombre: "Sol abierto", nombreIngles: "Open G", notas: [38, 43, 50, 55, 59, 62] },                    // Re Sol Re Sol Si Re (al aire suena un acorde de Sol)
 ];
 
 // Arma la lista de las 6 cuerdas de una afinación, con todo lo que la pantalla necesita.
@@ -756,7 +758,7 @@ function mezclarNotasYAcordes(acordes, notas) {
     ...acordesBuenos.map(({ fin, ...acorde }) => ({ tipo: "acorde", ...acorde })),
     ...notasBuenas.map((nota) => {
       const nombre = frecuenciaANota(frecuenciaDeNota(nota.numero)); // nombre y octava de esa nota
-      return { tipo: "nota", corto: nombre.nombre, ingles: nombre.ingles, completo: `Nota ${nombre.nombre} (${nombre.ingles})`, numero: nota.numero, inicio: nota.inicio, duracion: nota.fin - nota.inicio };
+      return { tipo: "nota", corto: nombre.nombre, ingles: nombre.ingles, numero: nota.numero, inicio: nota.inicio, duracion: nota.fin - nota.inicio };
     }),
   ].sort((a, b) => a.inicio - b.inicio);
   // Si dos seguidas son iguales (la misma nota repetida, o el mismo acorde), se juntan en una

@@ -48,7 +48,10 @@ const notasRuido = document.getElementById("notas-ruido");                   // 
 
 // ===== 4. Reconocer =====
 
-// Decide qué suena en este instante. Devuelve un objeto con todo lo que hay que mostrar, o null.
+// Decide qué suena en este instante. Devuelve un objeto con lo que se reconoció, o null.
+// Los nombres se guardan en español (son los DATOS); recién al mostrarlos se escriben
+// en el idioma elegido (ver "textosDeDeteccion" abajo). Así, si cambias de idioma,
+// lo que ya se reconoció (y el historial) se reescribe en el idioma nuevo.
 function reconocerSonido(tono, obtenerCroma) {
   // Caso 1: una sola nota limpia
   if (tono && tono.claridad >= NOTAS_CLARIDAD_NOTA) {
@@ -56,9 +59,10 @@ function reconocerSonido(tono, obtenerCroma) {
     return {
       clave: nota.ingles,                                  // "A2": identifica esta detección
       numero: nota.numero,                                 // 45: el número de nota, para buscarla en el mástil
-      tipo: "Nota",
+      tipo: "nota",
       nombre: nota.nombre,                                 // "La"
-      detalle: `${nota.ingles} · ${formatearHz(tono.frecuencia, 1)}`,
+      ingles: nota.ingles,                                 // "A2"
+      frecuencia: tono.frecuencia,                         // 110 (Hz)
       notas: [],
     };
   }
@@ -67,13 +71,33 @@ function reconocerSonido(tono, obtenerCroma) {
   if (acorde && acorde.similitud >= SIMILITUD_MINIMA_ACORDE) {
     return {
       clave: acorde.corto,                                 // "Lam"
-      tipo: "Acorde",
-      nombre: acorde.corto,
-      detalle: `${acorde.completo} · ${acorde.ingles}`,    // "La menor · Am"
+      tipo: "acorde",
+      nombre: acorde.corto,                                // "Lam"
+      ingles: acorde.ingles,                               // "Am"
       notas: acorde.notas,                                 // ["La", "Do", "Mi"]
     };
   }
   return null; // no se reconoció nada seguro
+}
+
+// Los textos de una detección en el idioma elegido (las funciones están en idioma.js).
+// Ejemplo en español: { tipo: "Acorde", nombre: "Lam", detalle: "La menor · Am" }
+//         en inglés:  { tipo: "Chord",  nombre: "Am",  detalle: "A minor" }
+function textosDeDeteccion(deteccion) {
+  let detalle;
+  if (deteccion.tipo === "nota") {
+    detalle = `${deteccion.ingles} · ${hz(deteccion.frecuencia, 1)}`;   // "A2 · 110,0 Hz"
+  } else {
+    const completo = acordeCompleto(deteccion.nombre);                  // "La menor" o "A minor"
+    // En español agregamos el cifrado inglés ("· Am"); en inglés ya es el mismo nombre
+    detalle = idioma === "en" ? completo : `${completo} · ${deteccion.ingles}`;
+  }
+  return {
+    tipo: t(deteccion.tipo),                       // "Nota"/"Note" o "Acorde"/"Chord"
+    nombre: nombreMusical(deteccion.nombre),       // "La"/"A" o "Lam"/"Am"
+    detalle,
+    notas: deteccion.notas.map(nombreMusical),     // ["La", "Do", "Mi"] o ["A", "C", "E"]
+  };
 }
 
 // microfono.js llama a esta función unas 20 veces por segundo
@@ -113,21 +137,24 @@ function procesarSonidoNotas({ volumen, tono, obtenerCroma }) {
 
 function mostrarDeteccion(deteccion) {
   notasMostrada = deteccion;
-  notasTipo.textContent = deteccion.tipo;
-  notasNombre.textContent = deteccion.nombre;
-  notasDetalle.textContent = deteccion.detalle;
+  const textos = textosDeDeteccion(deteccion); // los textos en el idioma elegido
+  notasTipo.textContent = textos.tipo;
+  notasNombre.textContent = textos.nombre;
+  notasDetalle.textContent = textos.detalle;
   // Fichas redondas con las notas del acorde (se vacía primero)
   notasDelAcorde.replaceChildren();
-  for (const nota of deteccion.notas) {
+  for (const nota of textos.notas) {
     const ficha = document.createElement("li");
     ficha.textContent = nota;
     notasDelAcorde.append(ficha);
   }
   // Diagrama: si es un acorde, cómo se toca; si es una nota sola, dónde se toca
   notasDiagramaDibujo.replaceChildren(); // borra el dibujo anterior
-  if (deteccion.tipo === "Acorde") {
-    notasDiagramaTitulo.textContent = "Cómo se toca";
-    notasDiagramaAyuda.textContent = "Números = dedos: 1 índice · 2 medio · 3 anular · 4 meñique";
+  if (deteccion.tipo === "acorde") {
+    notasDiagramaTitulo.textContent = t("comoSeToca");
+    notasDiagramaAyuda.textContent = t("dedos");
+    // Al dibujo le pasamos el nombre ESPAÑOL ("Lam"): así se llama en la lista de formas
+    // de diagramas.js (el dibujo es el mismo en los dos idiomas)
     notasDiagramaDibujo.append(dibujarDiagramaAcorde(deteccion.clave)); // función de diagramas.js
     notasDiagrama.hidden = false;
   } else {
@@ -147,17 +174,16 @@ function mostrarDondeSeToca(deteccion) {
     notasDiagrama.hidden = true;
     return;
   }
-  notasDiagramaTitulo.textContent = "Dónde se toca";
-  notasDiagramaDibujo.append(dibujarDiagramaNota(facil, deteccion.nombre)); // diagramas.js
+  notasDiagramaTitulo.textContent = t("dondeSeToca");
+  notasDiagramaDibujo.append(dibujarDiagramaNota(facil, nombreMusical(deteccion.nombre))); // diagramas.js
   // Texto: el lugar dibujado y, si hay, los otros lugares donde suena igual.
-  // " " es un espacio que NO se corta al cambiar de línea: así "5ª cuerda, traste 15"
-  // queda siempre junto y no se parte en dos renglones.
-  const describir = (p) => `${p.cuerda}ª cuerda, ${p.traste === 0 ? "al aire" : "traste " + p.traste}`;
+  // El texto de cada lugar está en idioma.js ("lugar"): "5ª cuerda, traste 15" o "5th string, fret 15".
+  const describir = (p) => t("lugar", t("ordinal", p.cuerda), p.traste);
   const otros = posiciones
     .filter((p) => p !== facil)
     .sort((a, b) => a.traste - b.traste) // del traste más bajo al más alto
     .map(describir);
-  notasDiagramaAyuda.textContent = describir(facil) + (otros.length ? `. También suena igual en: ${otros.join(" · ")}` : "");
+  notasDiagramaAyuda.textContent = describir(facil) + (otros.length ? t("tambienSuena", otros.join(" · ")) : "");
   notasDiagrama.hidden = false;
 }
 
@@ -172,13 +198,14 @@ function agregarAlHistorial(deteccion) {
 function dibujarHistorial() {
   notasListaHistorial.replaceChildren(); // borra lo que había
   for (const deteccion of notasHistorial) {
+    const textos = textosDeDeteccion(deteccion); // en el idioma elegido
     const fila = document.createElement("li");
     const nombre = document.createElement("span");
     nombre.className = "historial-nombre";
-    nombre.textContent = deteccion.nombre;
+    nombre.textContent = textos.nombre;
     const tipo = document.createElement("span");
     tipo.className = "historial-tipo";
-    tipo.textContent = deteccion.tipo;
+    tipo.textContent = textos.tipo;
     fila.append(nombre, tipo);
     notasListaHistorial.append(fila);
   }
@@ -188,19 +215,21 @@ function dibujarHistorial() {
 // Cambia el botón y los textos según se esté escuchando o no
 function prepararPantallaNotas(escuchando) {
   notasBoton.setAttribute("aria-pressed", String(escuchando));
-  notasBoton.querySelector(".boton-texto").textContent = escuchando ? "Dejar de escuchar" : "Empezar a escuchar";
   notasNivel.style.setProperty("--nivel", "0%");
   notasCandidata = null;
   notasRepeticiones = 0;
   notasDetectorRuido.reiniciar(); // empieza a contar de cero
   notasRuido.hidden = true;       // y sin aviso de ruido
-  if (escuchando && !notasMostrada) {
-    notasTipo.textContent = "Escuchando";
-    notasDetalle.textContent = "Toca una nota o un acorde y déjalo sonar.";
-  }
-  if (!escuchando && !notasMostrada) {
-    notasTipo.textContent = "Listo";
-    notasDetalle.textContent = "Toca «Empezar a escuchar» y luego una nota o un acorde.";
+  escribirTextosNotas(escuchando);
+}
+
+// Escribe los textos del botón y, si todavía no se reconoció nada, el "Listo" / "Escuchando"
+// (separado de prepararPantallaNotas para poder reescribirlos al cambiar de idioma)
+function escribirTextosNotas(escuchando) {
+  notasBoton.querySelector(".boton-texto").textContent = t(escuchando ? "dejarEscuchar" : "empezarEscuchar");
+  if (!notasMostrada) {
+    notasTipo.textContent = t(escuchando ? "escuchando" : "listo");
+    notasDetalle.textContent = t(escuchando ? "notasEscuchando" : "notasListo");
   }
 }
 
@@ -221,3 +250,12 @@ async function alternarMicrofonoNotas() {
 // ===== 6. Arranque =====
 
 notasBoton.addEventListener("click", alternarMicrofonoNotas);
+escribirTextosNotas(false); // los textos del comienzo, en el idioma elegido
+
+// Al cambiar de idioma (idioma.js avisa): reescribimos el botón, lo que se está
+// mostrando (con su diagrama) y el historial, todo en el idioma nuevo
+alCambiarIdioma(() => {
+  escribirTextosNotas(micEstaEncendido());
+  if (notasMostrada) mostrarDeteccion(notasMostrada);
+  dibujarHistorial();
+});

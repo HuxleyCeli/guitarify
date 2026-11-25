@@ -31,6 +31,8 @@ let trozosGrabados = [];       // pedacitos de audio que va entregando la grabad
 let inicioGrabacion = 0;       // momento en que empezó la grabación
 let relojGrabacion = null;     // temporizador que actualiza el contador de segundos
 let analizando = false;        // true mientras se analiza (para no empezar dos análisis a la vez)
+let ultimosElementos = null;   // la última lista de notas y acordes (para reescribirla si cambia el idioma)
+let escribirEstado = () => t("cancionesInicio"); // "receta" del mensaje de estado actual (ver mostrarEstadoCanciones)
 
 // ===== 3. Elementos de la página =====
 
@@ -127,8 +129,13 @@ function normalizarVolumen(muestras) {
 
 // ===== 5. Mostrar =====
 
-function mostrarEstadoCanciones(texto) {
-  textoEstadoCanciones.textContent = texto;
+// Muestra el mensaje de estado. Recibe una FUNCIÓN que escribe el mensaje (una "receta"),
+// no el texto ya escrito: la guardamos, y si cambias de idioma la volvemos a usar
+// para escribir el mismo mensaje en el idioma nuevo.
+// Ejemplo: mostrarEstadoCanciones(() => t("leyendo", "cancion.mp3"))
+function mostrarEstadoCanciones(escribir) {
+  escribirEstado = escribir;
+  textoEstadoCanciones.textContent = escribir();
 }
 
 // Mueve la barra de avance (porcentaje de 0 a 100) usando la variable CSS --avance
@@ -145,7 +152,10 @@ function bloquearBotones(bloquear) {
 // Dibuja la lista: acordes y notas MEZCLADOS, en el orden en que suenan.
 // Cada elemento tiene "tipo": "acorde" o "nota" (sale de mezclarNotasYAcordes, en musica.js).
 // Si un elemento no dice su tipo, es un acorde (así funcionaba antes).
+// Los nombres llegan en español ("Lam", "La"); nombreMusical (idioma.js) los escribe
+// en el idioma elegido ("Am", "A").
 function mostrarAcordes(elementos) {
+  ultimosElementos = elementos;   // la guardamos para poder reescribirla si cambia el idioma
   listaAcordes.replaceChildren(); // borra la lista anterior
   for (const elemento of elementos) {
     const esNota = elemento.tipo === "nota";
@@ -153,47 +163,58 @@ function mostrarAcordes(elementos) {
     if (esNota) fila.className = "es-nota";      // el CSS pinta las notas en dorado
     const nombre = document.createElement("span");
     nombre.className = "acorde-nombre";
-    nombre.textContent = elemento.corto;         // "Lam" (acorde) o "La" (nota)
+    nombre.textContent = nombreMusical(elemento.corto); // "Lam"/"Am" (acorde) o "La"/"A" (nota)
     const cifrado = document.createElement("span");
     cifrado.className = "acorde-cifrado";
-    cifrado.textContent = elemento.ingles;       // "Am" (acorde) o "A3" (nota, con su octava)
+    // Debajo del nombre: la nota con su octava ("A3"). En un acorde, en español va el
+    // cifrado inglés ("Am"); en inglés eso repetiría el nombre, así que va "A minor"
+    cifrado.textContent = esNota || idioma === "es" ? elemento.ingles : acordeCompleto(elemento.corto);
     const tiempo = document.createElement("span");
     tiempo.className = "acorde-tiempo";
     // Cuándo empieza: "0:04". Las notas, con décimas ("0:02.4"), porque cambian rápido
     tiempo.textContent = formatearTiempo(elemento.inicio, { decimas: esNota });
     // Diagrama chico (diagramas.js): cómo se toca el acorde, o dónde se toca la nota
-    // (la nota, según la afinación elegida en el Afinador)
+    // (la nota, según la afinación elegida en el Afinador). El acorde se busca por su
+    // nombre en español, que es como está guardado en la lista de formas.
     const diagrama = esNota
-      ? dibujarDiagramaNota(posicionMasFacil(posicionesDeNota(elemento.numero, afinacionActual)), elemento.corto, { mini: true })
+      ? dibujarDiagramaNota(posicionMasFacil(posicionesDeNota(elemento.numero, afinacionActual)), nombreMusical(elemento.corto), { mini: true })
       : dibujarDiagramaAcorde(elemento.corto, { ancho: 60, mini: true });
     fila.append(nombre, cifrado, diagrama, tiempo);
-    fila.title = elemento.completo;              // al mantener el dedo o el mouse: "La menor" o "Nota La (A3)"
+    // Al mantener el dedo o el mouse: "La menor" / "A minor", o "Nota La (A3)" / "Note A (A3)"
+    fila.title = esNota ? t("notaCompleta", nombreMusical(elemento.corto), elemento.ingles) : acordeCompleto(elemento.corto);
     listaAcordes.append(fila);
   }
   // Resumen con los acordes y las notas distintas, en el orden en que aparecen por primera vez.
   // "new Set" guarda cada valor una sola vez (quita los repetidos).
-  const distintos = (tipo) => [...new Set(elementos.filter((e) => (e.tipo || "acorde") === tipo).map((e) => e.corto))];
+  const distintos = (tipo) => [...new Set(elementos.filter((e) => (e.tipo || "acorde") === tipo).map((e) => nombreMusical(e.corto)))];
   const acordes = distintos("acorde");
   const notas = distintos("nota");
   const partes = [];
-  if (acordes.length) partes.push(`${acordes.length} ${acordes.length === 1 ? "acorde" : "acordes"}: ${acordes.join(" · ")}`);
-  if (notas.length) partes.push(`${notas.length} ${notas.length === 1 ? "nota" : "notas"}: ${notas.join(" · ")}`);
-  resumenCanciones.textContent = "Usa " + partes.join(" — y ");
+  if (acordes.length) partes.push(`${t("cuantosAcordes", acordes.length)}: ${acordes.join(" · ")}`);
+  if (notas.length) partes.push(`${t("cuantasNotas", notas.length)}: ${notas.join(" · ")}`);
+  resumenCanciones.textContent = t("resumen", partes);
   resumenCanciones.hidden = elementos.length === 0;
   vacioCanciones.hidden = elementos.length > 0;
-  vacioCanciones.textContent = "No encontré notas ni acordes claros en este audio. Prueba con una guitarra sola, más cerca del micrófono.";
+  // Si no se encontró nada, cambia el mensaje. Cambiamos también su "data-t" (la clave
+  // del texto): así, si después se cambia de idioma, idioma.js traduce el mensaje NUEVO
+  vacioCanciones.dataset.t = "sinResultados";
+  vacioCanciones.textContent = t("sinResultados");
 }
 
 // ===== 6. Analizar =====
 
-// Analiza un archivo o grabación ("origen" es solo el nombre que se muestra)
+// Analiza un archivo o grabación ("origen" es solo el nombre que se muestra: el nombre
+// del archivo, o null si es una grabación)
 async function analizarAudio(archivo, origen) {
   if (analizando) return;
   analizando = true;
   bloquearBotones(true);
   barraProgreso.hidden = false;
   mostrarAvance(0);
-  mostrarEstadoCanciones(`Leyendo «${origen}»…`);
+  // El nombre que se muestra: el del archivo, o "Grabación"/"Recording" según el idioma
+  // (es una función para que se escriba en el idioma que esté elegido en ese momento)
+  const nombre = () => origen ?? t("grabacion");
+  mostrarEstadoCanciones(() => t("leyendo", nombre()));
 
   try {
     const datos = await archivo.arrayBuffer();              // el archivo como bytes
@@ -215,7 +236,8 @@ async function analizarAudio(archivo, origen) {
       // Cada 40 ventanas actualizamos la barra y dejamos respirar a la pantalla
       if (ventanas.length % 40 === 0) {
         mostrarAvance((ventanas.length / total) * 50);   // la primera mitad de la barra es de los acordes
-        mostrarEstadoCanciones(`Buscando acordes en «${origen}»… ${Math.round((ventanas.length / total) * 50)}%`);
+        const porcentaje = Math.round((ventanas.length / total) * 50);
+        mostrarEstadoCanciones(() => t("buscandoAcordes", nombre(), porcentaje));
         await pausaBreve();
       }
     }
@@ -242,7 +264,7 @@ async function analizarAudio(archivo, origen) {
       if (lecturas.length % 400 === 0) {
         const avance = 50 + 50 * (inicio / paraNotas.length);
         mostrarAvance(avance);
-        mostrarEstadoCanciones(`Buscando notas en «${origen}»… ${Math.round(avance)}%`);
+        mostrarEstadoCanciones(() => t("buscandoNotas", nombre(), Math.round(avance)));
         await pausaBreve();
       }
     }
@@ -251,15 +273,17 @@ async function analizarAudio(archivo, origen) {
 
     mostrarAvance(100);
     mostrarAcordes(elementos);
-    const recorte = duracion > CANCIONES_MAXIMO_SEGUNDOS ? ` (se analizaron los primeros ${formatearTiempo(CANCIONES_MAXIMO_SEGUNDOS)})` : "";
-    // Cuántos acordes y cuántas notas hay: "3 acordes y 8 notas"
-    const cuantos = (tipo, uno, varios) => {
-      const n = elementos.filter((e) => e.tipo === tipo).length;
-      return `${n} ${n === 1 ? uno : varios}`;
-    };
-    mostrarEstadoCanciones(`«${origen}» · ${formatearTiempo(duracion)} · ${cuantos("acorde", "acorde", "acordes")} y ${cuantos("nota", "nota", "notas")}${recorte}`);
+    // Cuántos acordes y cuántas notas hay (para el mensaje "3 acordes y 8 notas")
+    const cuantos = (tipo) => elementos.filter((e) => e.tipo === tipo).length;
+    const acordesTotal = cuantos("acorde");
+    const notasTotal = cuantos("nota");
+    // La "receta" del mensaje final: se puede volver a escribir en el otro idioma
+    mostrarEstadoCanciones(() => {
+      const recorte = duracion > CANCIONES_MAXIMO_SEGUNDOS ? t("recorte", formatearTiempo(CANCIONES_MAXIMO_SEGUNDOS)) : "";
+      return t("resultado", nombre(), formatearTiempo(duracion), t("cuantosAcordes", acordesTotal), t("cuantasNotas", notasTotal), recorte);
+    });
   } catch {
-    mostrarEstadoCanciones("No pude leer ese audio. Prueba con otro archivo (mp3, m4a o wav).");
+    mostrarEstadoCanciones(() => t("noLeido"));
   } finally {
     // "finally" se ejecuta siempre, haya salido bien o mal
     analizando = false;
@@ -282,7 +306,7 @@ selectorArchivo.addEventListener("change", () => {
 // Cambia el botón y la barra de señal según se esté grabando o no
 function prepararPantallaGrabacion(grabando) {
   botonGrabar.setAttribute("aria-pressed", String(grabando));
-  textoGrabar.textContent = grabando ? "Detener 0:00" : "Grabar";
+  textoGrabar.textContent = grabando ? t("detener", "0:00") : t("grabar");
   cajaNivelCanciones.hidden = !grabando;
   nivelCanciones.style.setProperty("--nivel", "0%");
   botonElegir.disabled = grabando;
@@ -291,7 +315,7 @@ function prepararPantallaGrabacion(grabando) {
     // Cada medio segundo actualizamos el contador de tiempo
     relojGrabacion = setInterval(() => {
       const segundos = (performance.now() - inicioGrabacion) / 1000;
-      textoGrabar.textContent = `Detener ${formatearTiempo(segundos)}`;
+      textoGrabar.textContent = t("detener", formatearTiempo(segundos));
       if (segundos >= CANCIONES_MAXIMO_GRABACION) apagarMicrofono(); // límite de tiempo
     }, 500);
   }
@@ -306,7 +330,7 @@ function alTerminarGrabacion() {
 async function empezarGrabacion() {
   // MediaRecorder es la herramienta del navegador para grabar. Algunos navegadores viejos no la tienen
   if (typeof MediaRecorder === "undefined") {
-    mostrarAviso("Este navegador no permite grabar audio. Usa «Elegir audio».");
+    mostrarAviso(t("noGraba"));
     return;
   }
   try {
@@ -320,12 +344,12 @@ async function empezarGrabacion() {
     grabadora.onstop = () => {
       // Juntamos los pedacitos en un solo archivo de audio ("Blob") y lo analizamos
       const audio = new Blob(trozosGrabados, { type: grabadora.mimeType });
-      if (audio.size > 0) analizarAudio(audio, "Grabación");
+      if (audio.size > 0) analizarAudio(audio, null); // null = "es una grabación" (se nombra según el idioma)
     };
     grabadora.start();
     inicioGrabacion = performance.now();
     prepararPantallaGrabacion(true);
-    mostrarEstadoCanciones("Grabando… toca la canción cerca del micrófono y luego «Detener».");
+    mostrarEstadoCanciones(() => t("grabando"));
   } catch (error) {
     mostrarAviso(mensajeErrorMicrofono(error));
   }
@@ -334,4 +358,18 @@ async function empezarGrabacion() {
 botonGrabar.addEventListener("click", () => {
   if (micEstaEncendido()) apagarMicrofono(); // estaba grabando: detener (y se analiza sola)
   else empezarGrabacion();
+});
+
+// ===== 9. Arranque e idioma =====
+
+// Los textos del comienzo, en el idioma elegido
+textoGrabar.textContent = t("grabar");
+mostrarEstadoCanciones(escribirEstado);
+
+// Al cambiar de idioma (idioma.js avisa): reescribimos el botón Grabar (si no está
+// grabando), el mensaje de estado (con su "receta") y la lista, si ya hay una
+alCambiarIdioma(() => {
+  if (!micEstaEncendido()) textoGrabar.textContent = t("grabar");
+  mostrarEstadoCanciones(escribirEstado);
+  if (ultimosElementos) mostrarAcordes(ultimosElementos);
 });

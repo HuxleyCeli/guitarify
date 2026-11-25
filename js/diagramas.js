@@ -67,14 +67,15 @@ function crearSVGDiagrama(etiqueta, atributos, texto) {
 
 // Describe el acorde con palabras, para quien usa un lector de pantalla (no ve el dibujo).
 // Ejemplo: "Cómo se toca Lam: cuerda 6 no se toca; cuerda 5 al aire; cuerda 4, traste 2, dedo 2; ..."
+// Las palabras salen de idioma.js (t); el nombre, en el idioma elegido (nombreMusical: "Am").
 function describirForma(nombre, forma) {
   const partes = forma.trastes.map((traste, i) => {
     const cuerda = 6 - i; // la posición 0 de la lista es la 6ª cuerda
-    if (traste === -1) return `cuerda ${cuerda} no se toca`;
-    if (traste === 0) return `cuerda ${cuerda} al aire`;
-    return `cuerda ${cuerda}, traste ${traste}, dedo ${forma.dedos[i]}`;
+    if (traste === -1) return t("cuerdaNoSeToca", cuerda);
+    if (traste === 0) return t("cuerdaAlAire", cuerda);
+    return t("cuerdaTrasteDedo", cuerda, traste, forma.dedos[i]);
   });
-  return `Cómo se toca ${nombre}: ${partes.join("; ")}.`;
+  return t("diagramaAcorde", nombreMusical(nombre), partes.join("; "));
 }
 
 // ===== 3. Dibujar =====
@@ -193,15 +194,14 @@ function dibujarDiagramaNota(posicion, nombre, { mini = false, ancho = mini ? 60
   const xCuerda = (indice) => margen + indice * separacionCuerdas;
   const yTraste = (traste) => arriba + (traste - inicio + 0.5) * separacionTrastes;
 
-  // Descripción en palabras para lectores de pantalla
-  const lugar = posicion.traste === 0 ? "al aire" : `traste ${posicion.traste}`;
+  // (La descripción en palabras para lectores de pantalla sale de idioma.js: "diagramaNota")
   const svg = crearSVGDiagrama("svg", {
     class: mini ? "diagrama diagrama-nota diagrama-mini" : "diagrama diagrama-nota",
     width: ancho,
     height: alto,
     viewBox: `0 0 ${ancho} ${alto}`,
     role: "img",
-    "aria-label": `Dónde se toca ${nombre}: cuerda ${posicion.cuerda}, ${lugar}.`,
+    "aria-label": t("diagramaNota", nombre, posicion.cuerda, posicion.traste),
   });
 
   // Trastes: líneas horizontales

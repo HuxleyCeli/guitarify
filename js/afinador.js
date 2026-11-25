@@ -53,7 +53,6 @@ const nivelAfinador = document.getElementById("afinador-nivel");
 const textoModo = document.getElementById("afinador-modo");
 const botonAutomatico = document.getElementById("afinador-auto");
 const botonMicAfinador = document.getElementById("afinador-mic");
-const ayudaAfinador = document.getElementById("afinador-ayuda");
 const menuAfinacion = document.getElementById("afinador-afinacion"); // el menú para elegir la afinación
 
 // ===== 4. Textos =====
@@ -67,22 +66,23 @@ function formatearCents(cents) {
 
 // Traduce los cents a un estado y a un consejo para la persona que afina.
 // Si la cuerda suena BAJA hay que APRETAR la clavija (la cuerda se estira y sube de tono);
-// si suena ALTA hay que SOLTARLA.
+// si suena ALTA hay que SOLTARLA. Los textos salen de idioma.js con t("clave").
 function describirAfinacion(cents) {
-  if (Math.abs(cents) <= VU_ZONA_AFINADA) return { estado: "afinado", consejo: "¡Afinada!" };
+  if (Math.abs(cents) <= VU_ZONA_AFINADA) return { estado: "afinado", consejo: t("consejoAfinada") };
   const lejos = Math.abs(cents) > 50; // más de medio semitono de diferencia
-  if (cents < 0) return { estado: "bajo", consejo: (lejos ? "Muy baja" : "Baja") + ": aprieta un poco la clavija" };
-  return { estado: "alto", consejo: (lejos ? "Muy alta" : "Alta") + ": suelta un poco la clavija" };
+  if (cents < 0) return { estado: "bajo", consejo: t("consejoBaja", lejos) };
+  return { estado: "alto", consejo: t("consejoAlta", lejos) };
 }
 
 // Muestra la nota y los datos de la cuerda elegida.
 // Si hay una frecuencia escuchada, la muestra; si no, muestra la frecuencia objetivo.
+// nombreMusical (idioma.js) escribe la nota en el idioma elegido: "Mi" o "E".
 function mostrarCuerda(cuerda, frecuenciaEscuchada) {
-  textoNota.textContent = cuerda.nota;
+  textoNota.textContent = nombreMusical(cuerda.nota);
   const frecuencia = frecuenciaEscuchada
-    ? "oyendo " + formatearHz(frecuenciaEscuchada, 1)
-    : formatearHz(cuerda.frecuencia);
-  textoDetalle.textContent = `${cuerda.numero}ª cuerda · ${cuerda.ingles} · ${frecuencia}`;
+    ? t("oyendo") + " " + hz(frecuenciaEscuchada, 1)   // hz (idioma.js): "82,41 Hz" o "82.41 Hz"
+    : hz(cuerda.frecuencia);
+  textoDetalle.textContent = t("cuerdaDetalle", t("ordinal", cuerda.numero), cuerda.ingles, frecuencia);
 }
 
 // Mueve la aguja y escribe el estado según los cents
@@ -97,14 +97,14 @@ function mostrarAfinacion(cents) {
 function mostrarApagado() {
   moverAguja(CENTS_EN_REPOSO);                       // aguja a la izquierda, como un medidor sin señal
   textoEstado.dataset.estado = "esperando";          // mismo color tranquilo que "esperando"
-  textoEstado.textContent = "Enciende el micrófono para empezar a afinar";
+  textoEstado.textContent = t("afinadorApagado");
 }
 
 // Deja la aguja en reposo cuando no suena nada
 function mostrarEspera() {
   moverAguja(CENTS_EN_REPOSO);
   textoEstado.dataset.estado = "esperando";
-  textoEstado.textContent = "Toca una cuerda al aire, cerca del micrófono";
+  textoEstado.textContent = t("afinadorEspera");
 }
 
 // Deja la aguja en reposo y explica que hay sonido, pero no se distingue una cuerda.
@@ -112,18 +112,18 @@ function mostrarEspera() {
 function mostrarRuido() {
   moverAguja(CENTS_EN_REPOSO);
   textoEstado.dataset.estado = "ruido";
-  textoEstado.textContent = "Hay mucho ruido: toca una sola cuerda, cerca del micrófono";
+  textoEstado.textContent = t("afinadorRuido");
 }
 
 // Actualiza el texto que explica el modo (automático o manual)
 function mostrarModo() {
   if (!micEstaEncendido()) {
-    textoModo.textContent = "Con el micrófono encendido, la app reconoce sola qué cuerda tocas.";
+    textoModo.textContent = t("modoApagado");
   } else if (modoAutomatico) {
-    textoModo.textContent = "Modo automático: reconoce sola qué cuerda tocas.";
+    textoModo.textContent = t("modoAutomatico");
   } else {
     const cuerda = CUERDAS[cuerdaElegida];
-    textoModo.textContent = `Modo manual: afinando la ${cuerda.numero}ª cuerda (${cuerda.nota}).`;
+    textoModo.textContent = t("modoManual", t("ordinal", cuerda.numero), nombreMusical(cuerda.nota));
   }
   botonAutomatico.hidden = modoAutomatico || !micEstaEncendido();
 }
@@ -203,10 +203,7 @@ function procesarSonidoAfinador({ volumen, tono }) {
 // Cambia la pantalla entre "micrófono apagado" (aguja en reposo) y "modo escucha"
 function prepararPantallaAfinador(escuchando) {
   botonMicAfinador.setAttribute("aria-pressed", String(escuchando));
-  botonMicAfinador.querySelector(".boton-texto").textContent = escuchando ? "Apagar micrófono" : "Encender micrófono";
-  ayudaAfinador.textContent = escuchando
-    ? "Toca una cuerda a la vez y déjala sonar. La barra de «Señal» muestra que el micrófono te escucha."
-    : "Enciende el micrófono, toca una cuerda al aire y gira la clavija hasta que se encienda la luz «Afinada».";
+  botonMicAfinador.querySelector(".boton-texto").textContent = t(escuchando ? "apagarMic" : "encenderMic");
   nivelAfinador.style.setProperty("--nivel", "0%");
   seguidor.reiniciar();
   detectorRuido.reiniciar();
@@ -243,17 +240,17 @@ function crearBotonesDeCuerdas() {
     const boton = document.createElement("button");
     boton.type = "button";
     boton.className = "pua cuerda";                  // mismas clases que usa el CSS
-    boton.setAttribute("aria-label", `Cuerda ${cuerda.numero}: ${cuerda.nota} (${cuerda.ingles})`);
+    boton.setAttribute("aria-label", t("cuerdaAria", cuerda.numero, nombreMusical(cuerda.nota), cuerda.ingles));
 
     // Dos textos adentro: el nombre de la nota y el número de cuerda.
     // Usamos textContent (y no innerHTML) porque solo inserta texto: es un buen
     // hábito de seguridad, así nunca se puede colar código dentro de la página.
     const nombre = document.createElement("span");
     nombre.className = "cuerda-nota";
-    nombre.textContent = cuerda.nota;
+    nombre.textContent = nombreMusical(cuerda.nota);  // "Mi" o "E"
     const numero = document.createElement("span");
     numero.className = "cuerda-numero";
-    numero.textContent = cuerda.numero + "ª";
+    numero.textContent = t("ordinal", cuerda.numero); // "6ª" o "6th"
     boton.append(nombre, numero);                    // metemos los dos textos dentro del botón
 
     boton.addEventListener("click", () => alTocarCuerda(indice));
@@ -263,14 +260,27 @@ function crearBotonesDeCuerdas() {
 
 // ===== 8. Elegir la afinación =====
 
+// El nombre de una afinación en el idioma elegido ("idioma" está en idioma.js)
+function nombreDeAfinacion(afinacion) {
+  return idioma === "en" ? afinacion.nombreIngles : afinacion.nombre; // "Sol abierto" o "Open G"
+}
+
 // Llena el menú con una opción por afinación (salen de la lista AFINACIONES)
 function crearMenuDeAfinaciones() {
   for (const afinacion of AFINACIONES) {
     const opcion = document.createElement("option");
-    opcion.value = afinacion.id;             // lo que usa el código: "drop-d"
-    opcion.textContent = afinacion.nombre;   // lo que ve la persona: "Drop D"
+    opcion.value = afinacion.id;                        // lo que usa el código: "drop-d"
+    opcion.textContent = nombreDeAfinacion(afinacion);  // lo que ve la persona: "Drop D"
     menuAfinacion.append(opcion);
   }
+}
+
+// Al cambiar de idioma: reescribe los nombres del menú (cada opción está en el mismo
+// orden que la lista AFINACIONES, por eso "posicion" sirve para encontrar su afinación)
+function traducirMenuDeAfinaciones() {
+  [...menuAfinacion.options].forEach((opcion, posicion) => {
+    opcion.textContent = nombreDeAfinacion(AFINACIONES[posicion]);
+  });
 }
 
 // Cambia a la afinación "id": arma sus cuerdas, redibuja las uñetas y la recuerda
@@ -312,3 +322,11 @@ botonAutomatico.addEventListener("click", () => {
   mostrarModo();
 });
 prepararPantallaAfinador(false); // empieza con el micrófono apagado y la 6ª cuerda elegida
+
+// Cuando se cambia de idioma (idioma.js avisa), reescribimos todo lo que escribe este archivo:
+// el menú, las 6 uñetas (sus notas: Mi o E) y los textos del micrófono, el modo y el estado
+alCambiarIdioma(() => {
+  traducirMenuDeAfinaciones();
+  crearBotonesDeCuerdas();
+  prepararPantallaAfinador(micEstaEncendido()); // vuelve a escribir los textos sin perder la cuerda elegida
+});

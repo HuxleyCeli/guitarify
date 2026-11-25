@@ -6,7 +6,7 @@
     2. Fuente descargada (Anton)
     3. Base: reglas generales para toda la página
     4. Pantallas y barra superior
-    5. Componentes que se repiten (uñetas, paneles, botones, ayuda, aviso)
+    5. Componentes que se repiten (uñetas, paneles, botones, aviso)
     6. Pantalla de Inicio
     7. Pantalla del Afinador (medidor de aguja, lámpara, cuerdas)
     8. Pantalla de Notas y acordes
@@ -430,17 +430,9 @@ button:disabled {
   cursor: progress;          /* en una compu, el cursor muestra que algo se está procesando */
 }
 
-/* --- 5d. TEXTOS DE AYUDA --- */
-/* (Aquí antes estaba el sello rojo "EJEMPLO" del afinador. Se quitó en la versión
-   final: la app ya no muestra datos inventados, así que no hace falta marcarlos) */
-
-/* Texto chico de ayuda al final de cada pantalla (explica cómo usarla) */
-.texto-ayuda {
-  font-size: 0.82rem;
-  color: var(--color-texto-suave);
-  text-align: center;
-  text-wrap: balance;        /* reparte las palabras para que las líneas queden parejas */
-}
+/* --- 5d. LISTAS VACÍAS --- */
+/* (Aquí antes estaban el sello rojo "EJEMPLO" del afinador y los textos de ayuda del
+   final de cada pantalla. Se quitaron en la versión final, a pedido del equipo) */
 
 /* Mensaje que se ve cuando una lista todavía está vacía */
 .texto-vacio {
@@ -561,8 +553,38 @@ button:disabled {
 
 /* El Inicio tiene su propio espacio arriba (no tiene barra superior) */
 .pantalla-inicio {
-  padding-top: calc(env(safe-area-inset-top) + 24px);
+  padding-top: calc(env(safe-area-inset-top) + 12px);
   gap: 22px;
+}
+
+/* Selector de IDIOMA (ES / EN), arriba a la derecha del Inicio.
+   Es una "pastilla" con dos botones; el del idioma elegido tiene aria-pressed="true"
+   y se pinta rojo con letras blancas (el rojo va de FONDO, nunca como letra chica) */
+.selector-idioma {
+  align-self: flex-end;            /* a la derecha */
+  display: flex;
+  gap: 2px;
+  margin-bottom: -10px;            /* un poco más cerca del cartel */
+  padding: 3px;
+  border: 1.5px solid var(--color-dorado-oscuro);
+  border-radius: 999px;            /* bordes del todo redondos: forma de pastilla */
+  background: var(--color-superficie);
+}
+.idioma-opcion {
+  min-width: 46px;
+  min-height: 34px;                /* fácil de tocar con el dedo */
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  font-family: var(--fuente-titulos);
+  font-size: 0.95rem;
+  letter-spacing: 0.12em;
+  color: var(--color-texto-suave);
+}
+.idioma-opcion[aria-pressed="true"] {
+  background: var(--color-rojo);
+  color: var(--color-blanco);
 }
 
 /* El cartel del nombre, sobre la tela de parrilla */
@@ -722,19 +744,6 @@ button:disabled {
   color: var(--color-dorado);
 }
 
-/* Pie de página del Inicio */
-.pie {
-  text-align: center;
-  font-size: 0.78rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
-}
-
-/* Cada frase del pie queda entera ("nowrap" = no cortar esta frase en dos líneas) */
-.pie span {
-  white-space: nowrap;
-}
 
 
 /* ==================== 7. PANTALLA DEL AFINADOR ==================== */
@@ -1449,10 +1458,6 @@ button:disabled {
   #pantalla-canciones .columna-izq {
     position: sticky;
     top: 90px;
-  }
-  /* Los textos de ayuda, un poco más grandes (se leen desde más lejos) */
-  .texto-ayuda {
-    font-size: 0.9rem;
   }
 
   /* --- Inicio: el cartel arriba y las 3 funciones lado a lado, como tarjetas --- */

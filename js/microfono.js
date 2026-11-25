@@ -131,8 +131,8 @@ function nivelVisual(volumen) {
 
 // Traduce un error del micrófono a un mensaje claro para la persona
 function mensajeErrorMicrofono(error) {
-  if (error.name === "NotAllowedError") return "Necesito permiso para usar el micrófono. Actívalo en la configuración del navegador.";
-  if (error.name === "NotFoundError") return "No encontré ningún micrófono en este aparato.";
-  if (error.name === "PaginaNoSegura") return "El micrófono solo funciona si la app se abre con https (o en localhost).";
-  return "No se pudo encender el micrófono. Intenta de nuevo.";
+  if (error.name === "NotAllowedError") return t("micPermiso"); // los textos están en idioma.js
+  if (error.name === "NotFoundError") return t("micNoHay");
+  if (error.name === "PaginaNoSegura") return t("micNoSegura");
+  return t("micError");
 }

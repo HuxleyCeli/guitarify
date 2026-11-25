@@ -113,6 +113,14 @@
          Esta es la única pantalla SIN "hidden", por eso es la que se ve al abrir la app -->
     <section id="pantalla-inicio" class="pantalla pantalla-inicio">
 
+      <!-- Selector de IDIOMA: dos botones, ES y EN. El elegido queda "apretado" (aria-pressed="true")
+           y el CSS lo pinta rojo. js/idioma.js cambia todos los textos al tocarlos.
+           lang="..." le dice al lector de pantalla cómo pronunciar cada sigla -->
+      <div class="selector-idioma" role="group" aria-label="Idioma" data-t-aria="idiomaGrupo">
+        <button type="button" class="idioma-opcion" data-idioma="es" lang="es" aria-pressed="true">ES</button>
+        <button type="button" class="idioma-opcion" data-idioma="en" lang="en" aria-pressed="false">EN</button>
+      </div>
+
       <!-- El "cartel" del nombre: imita el frente de un amplificador (tela de parrilla + tornillos) -->
       <header class="cartel panel-rejilla con-tornillos">
         <!-- Tres estrellas decorativas. aria-hidden="true" = los lectores de pantalla las ignoran (son solo adorno) -->
@@ -128,7 +136,7 @@
           <span aria-hidden="true">GUITAR<svg class="logo-rayo"><use href="#icono-rayo-letra"/></svg>FY</span>
         </h1>
         <!-- Frase corta debajo del nombre, estilo póster de concierto -->
-        <p class="lema">Afina · Escucha · Toca</p>
+        <p class="lema" data-t="lema">Afina · Escucha · Toca</p>
       </header>
 
       <!-- Seis líneas decorativas que imitan las cuerdas: de la más fina (arriba) a la más gruesa (abajo), como en una tablatura -->
@@ -137,7 +145,7 @@
       </div>
 
       <!-- <nav> agrupa los botones de navegación. aria-label le da un nombre para lectores de pantalla -->
-      <nav class="menu" aria-label="Menú principal">
+      <nav class="menu" aria-label="Menú principal" data-t-aria="menuPrincipal">
         <!-- type="button" aclara que es un botón normal (no envía formularios).
              data-ir="afinador" es un atributo inventado por nosotros: le dice a app.js a qué pantalla ir -->
         <button type="button" class="boton-menu" data-ir="afinador">
@@ -145,8 +153,8 @@
           <span class="pua menu-pua" aria-hidden="true"><svg class="icono"><use href="#icono-afinador"/></svg></span>
           <!-- Título y descripción del botón -->
           <span class="menu-textos">
-            <span class="menu-titulo">Afinador</span>
-            <span class="menu-detalle">Afina cada cuerda con el medidor de aguja</span>
+            <span class="menu-titulo" data-t="afinadorTitulo">Afinador</span>
+            <span class="menu-detalle" data-t="afinadorMenu">Afina cada cuerda con el medidor de aguja</span>
           </span>
           <!-- Flechita a la derecha -->
           <svg class="icono menu-entrar" aria-hidden="true"><use href="#icono-entrar"/></svg>
@@ -155,8 +163,8 @@
         <button type="button" class="boton-menu" data-ir="notas">
           <span class="pua menu-pua" aria-hidden="true"><svg class="icono"><use href="#icono-notas"/></svg></span>
           <span class="menu-textos">
-            <span class="menu-titulo">Notas y acordes</span>
-            <span class="menu-detalle">Descubre qué nota o acorde estás tocando</span>
+            <span class="menu-titulo" data-t="notasTitulo">Notas y acordes</span>
+            <span class="menu-detalle" data-t="notasMenu">Descubre qué nota o acorde estás tocando</span>
           </span>
           <svg class="icono menu-entrar" aria-hidden="true"><use href="#icono-entrar"/></svg>
         </button>
@@ -164,18 +172,12 @@
         <button type="button" class="boton-menu" data-ir="canciones">
           <span class="pua menu-pua" aria-hidden="true"><svg class="icono"><use href="#icono-casete"/></svg></span>
           <span class="menu-textos">
-            <span class="menu-titulo">Canciones</span>
-            <span class="menu-detalle">Saca las notas y acordes de una canción, en orden</span>
+            <span class="menu-titulo" data-t="cancionesTitulo">Canciones</span>
+            <span class="menu-detalle" data-t="cancionesMenu">Saca las notas y acordes de una canción, en orden</span>
           </span>
           <svg class="icono menu-entrar" aria-hidden="true"><use href="#icono-entrar"/></svg>
         </button>
       </nav>
-
-      <!-- Pie de página: dos cosas reales que vale la pena saber de la app.
-           (Todo se analiza dentro del teléfono o computador: no hay servidor al que se envíe el audio) -->
-      <!-- Cada frase va en su <span>: el CSS no deja que se corten por la mitad,
-           así que si no caben en una línea, se separan justo en el "·" -->
-      <p class="pie"><span>Funciona sin internet ·</span> <span>Tu audio no sale de tu dispositivo</span></p>
     </section>
 
     <!-- ===================== PANTALLA: AFINADOR ===================== -->
@@ -186,11 +188,11 @@
       <header class="barra-superior">
         <!-- data-regresar es otro atributo inventado: le dice a app.js "vuelve al Inicio".
              Como el botón solo tiene un ícono, aria-label le da un nombre que se lee en voz alta -->
-        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio">
+        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio" data-t-aria="regresar">
           <svg class="icono"><use href="#icono-flecha"/></svg>
         </button>
         <!-- Título de la pantalla -->
-        <h1 class="titulo-pantalla" tabindex="-1">Afinador</h1>
+        <h1 class="titulo-pantalla" tabindex="-1" data-t="afinadorTitulo">Afinador</h1>
       </header>
 
       <!-- Columna izquierda. En el teléfono no se nota: todo va en una sola columna.
@@ -208,7 +210,7 @@
             role="img" + aria-labelledby = para lectores de pantalla, todo esto es UNA imagen con ese título.
           -->
           <svg class="vu" viewBox="0 0 300 190" role="img" aria-labelledby="vu-titulo">
-            <title id="vu-titulo">Medidor de afinación</title>
+            <title id="vu-titulo" data-t="medidorTitulo">Medidor de afinación</title>
             <!-- <defs> guarda "pinturas" (degradados) que se usan más abajo -->
             <defs>
               <!-- Degradado metálico del marco (los colores los pone el CSS con las clases de cada <stop>) -->
@@ -256,13 +258,13 @@
           <!-- Luz piloto (como la lucecita de un amplificador): se enciende cuando la cuerda está afinada -->
           <p id="lampara-afinado" class="lampara">
             <span class="lampara-foco" aria-hidden="true"></span>
-            Afinada
+            <span data-t="afinada">Afinada</span>
           </p>
 
           <!-- Barra de "Señal" (la prueba de micrófono): se llena según el volumen que escucha.
                Sirve para saber que el micrófono funciona y si la guitarra suena lo bastante fuerte -->
           <div class="nivel" aria-hidden="true">
-            <span class="nivel-etiqueta">Señal</span>
+            <span class="nivel-etiqueta" data-t="senal">Señal</span>
             <span class="nivel-barra"><span id="afinador-nivel" class="nivel-relleno"></span></span>
           </div>
         </div>
@@ -285,12 +287,12 @@
       <div class="columna columna-der">
         <!-- Selector de cuerdas -->
         <section class="bloque" aria-labelledby="titulo-cuerdas">
-          <h2 id="titulo-cuerdas" class="subtitulo">Elige una cuerda</h2>
+          <h2 id="titulo-cuerdas" class="subtitulo" data-t="eligeCuerda">Elige una cuerda</h2>
           <!-- Menú para elegir la afinación (Estándar, Drop D...). Está vacío: js/afinador.js
                le pone las opciones a partir de la lista AFINACIONES. Usamos un <select>
                (menú desplegable) porque en el teléfono abre la "ruedita" propia del sistema -->
           <label class="afinacion" for="afinador-afinacion">
-            <span class="afinacion-etiqueta">Afinación</span>
+            <span class="afinacion-etiqueta" data-t="afinacion">Afinación</span>
             <span class="afinacion-caja">
               <select id="afinador-afinacion" class="afinacion-menu"></select>
             </span>
@@ -300,7 +302,7 @@
           <!-- Explica el modo: automático (la app reconoce la cuerda sola) o manual (la eliges tú) -->
           <p id="afinador-modo" class="modo">Con el micrófono encendido, la app reconoce sola qué cuerda tocas.</p>
           <!-- Aparece solo en modo manual, para volver al automático -->
-          <button type="button" id="afinador-auto" class="enlace" hidden>Volver al modo automático</button>
+          <button type="button" id="afinador-auto" class="enlace" hidden data-t="volverAutomatico">Volver al modo automático</button>
         </section>
 
         <!-- Botón para encender/apagar el micrófono. aria-pressed dice si está "apretado" (encendido) -->
@@ -308,18 +310,16 @@
           <svg class="icono"><use href="#icono-microfono"/></svg>
           <span class="boton-texto">Encender micrófono</span>
         </button>
-        <!-- Texto de ayuda: js/afinador.js lo cambia según el micrófono esté encendido o no -->
-        <p id="afinador-ayuda" class="texto-ayuda">Enciende el micrófono, toca una cuerda al aire y gira la clavija hasta que se encienda la luz «Afinada».</p>
       </div>
     </section>
 
     <!-- ===================== PANTALLA: NOTAS Y ACORDES ===================== -->
     <section id="pantalla-notas" class="pantalla" hidden>
       <header class="barra-superior">
-        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio">
+        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio" data-t-aria="regresar">
           <svg class="icono"><use href="#icono-flecha"/></svg>
         </button>
-        <h1 class="titulo-pantalla" tabindex="-1">Notas y acordes</h1>
+        <h1 class="titulo-pantalla" tabindex="-1" data-t="notasTitulo">Notas y acordes</h1>
       </header>
 
       <!-- Columna izquierda. En el teléfono no se nota: todo va en una sola columna.
@@ -338,9 +338,9 @@
             <!-- Detalle: nombre completo, cifrado americano y frecuencia -->
             <p id="notas-detalle" class="nota-detalle">Toca «Empezar a escuchar» y luego una nota o un acorde.</p>
             <!-- Aviso de ruido: js/notas.js lo muestra si hay sonido pero no se reconoce nada -->
-            <p id="notas-ruido" class="aviso-ruido" hidden>Hay mucho ruido: no distingo una nota ni un acorde. Prueba más cerca del micrófono o en un lugar más tranquilo.</p>
+            <p id="notas-ruido" class="aviso-ruido" hidden data-t="notasRuido">Hay mucho ruido: no distingo una nota ni un acorde. Prueba más cerca del micrófono o en un lugar más tranquilo.</p>
             <!-- Las notas que forman el acorde (vacía si es una nota sola) -->
-            <ul id="notas-del-acorde" class="notas-del-acorde" aria-label="Notas del acorde"></ul>
+            <ul id="notas-del-acorde" class="notas-del-acorde" aria-label="Notas del acorde" data-t-aria="notasDelAcorde"></ul>
             <!-- Diagrama de cómo se toca el acorde. Solo aparece cuando se reconoce un acorde
                  (con una nota sola queda oculto). js/notas.js dibuja el diagrama adentro -->
             <!-- Con una nota sola, la misma caja muestra DÓNDE se toca esa nota en el mástil.
@@ -353,7 +353,7 @@
           </div>
           <!-- Barra de "Señal": muestra que el micrófono está escuchando -->
           <div class="nivel" aria-hidden="true">
-            <span class="nivel-etiqueta">Señal</span>
+            <span class="nivel-etiqueta" data-t="senal">Señal</span>
             <span class="nivel-barra"><span id="notas-nivel" class="nivel-relleno"></span></span>
           </div>
         </div>
@@ -368,23 +368,22 @@
       <div class="columna columna-der">
         <!-- Historial de lo último que se tocó (lo llena js/notas.js) -->
         <section class="bloque" aria-labelledby="titulo-historial">
-          <h2 id="titulo-historial" class="subtitulo">Últimas notas</h2>
+          <h2 id="titulo-historial" class="subtitulo" data-t="ultimasNotas">Últimas notas</h2>
           <!-- Mensaje que se ve mientras la lista está vacía -->
-          <p id="notas-vacio" class="texto-vacio">Todavía no hay notas. Lo que toques aparecerá aquí.</p>
+          <p id="notas-vacio" class="texto-vacio" data-t="notasVacio">Todavía no hay notas. Lo que toques aparecerá aquí.</p>
           <!-- <ol> = lista ordenada: la primera es la más reciente -->
           <ol id="notas-historial" class="historial"></ol>
         </section>
-        <p class="texto-ayuda">Funciona mejor con una guitarra sola y sin ruido alrededor. Reconoce notas sueltas y acordes mayores y menores.</p>
       </div>
     </section>
 
     <!-- ===================== PANTALLA: CANCIONES ===================== -->
     <section id="pantalla-canciones" class="pantalla" hidden>
       <header class="barra-superior">
-        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio">
+        <button type="button" class="pua pua-regresar" data-regresar aria-label="Regresar al inicio" data-t-aria="regresar">
           <svg class="icono"><use href="#icono-flecha"/></svg>
         </button>
-        <h1 class="titulo-pantalla" tabindex="-1">Canciones</h1>
+        <h1 class="titulo-pantalla" tabindex="-1" data-t="cancionesTitulo">Canciones</h1>
       </header>
 
       <!-- Columna izquierda. En el teléfono no se nota: todo va en una sola columna.
@@ -402,7 +401,7 @@
           <!-- Elegir un archivo de audio guardado en el teléfono -->
           <button type="button" id="canciones-elegir" class="boton-cuadro">
             <svg class="icono icono-cuadro" aria-hidden="true"><use href="#icono-carpeta"/></svg>
-            Elegir audio
+            <span data-t="elegirAudio">Elegir audio</span>
           </button>
         </div>
         <!-- El selector de archivos real del navegador. Está escondido (hidden) porque es feo;
@@ -411,7 +410,7 @@
 
         <!-- Barra de "Señal" mientras se graba -->
         <div id="canciones-nivel-caja" class="nivel" aria-hidden="true" hidden>
-          <span class="nivel-etiqueta">Señal</span>
+          <span class="nivel-etiqueta" data-t="senal">Señal</span>
           <span class="nivel-barra"><span id="canciones-nivel" class="nivel-relleno"></span></span>
         </div>
 
@@ -425,15 +424,14 @@
       <div class="columna columna-der">
         <!-- Resultado del análisis: la lista de acordes en el orden en que se tocan -->
         <section class="bloque panel-amp con-tornillos" aria-labelledby="titulo-acordes">
-          <h2 id="titulo-acordes" class="subtitulo">Notas y acordes en orden</h2>
+          <h2 id="titulo-acordes" class="subtitulo" data-t="listaTitulo">Notas y acordes en orden</h2>
           <!-- Resumen: qué acordes distintos usa la canción -->
           <p id="canciones-resumen" class="resumen-acordes" hidden></p>
           <!-- Mensaje que se ve mientras no hay resultados -->
-          <p id="canciones-vacio" class="texto-vacio">Todavía no hay notas ni acordes. Aparecerán aquí después de analizar un audio.</p>
+          <p id="canciones-vacio" class="texto-vacio" data-t="cancionesVacio">Todavía no hay notas ni acordes. Aparecerán aquí después de analizar un audio.</p>
           <!-- <ol> = lista numerada. js/canciones.js crea un <li> por acorde: nombre, cifrado y minuto -->
           <ol id="canciones-lista" class="lista-acordes"></ol>
         </section>
-        <p class="texto-ayuda">Funciona mejor con guitarra sola. Muestra en orden los acordes (mayores y menores) y las notas sueltas de riffs y solos. Analiza hasta 3 minutos de audio.</p>
       </div>
     </section>
   </main>
@@ -446,6 +444,7 @@
        El orden importa: primero los que dan herramientas (musica.js, microfono.js, medidor.js)
        y después las pantallas que las usan -->
   <script src="./js/musica.js"></script>
+  <script src="./js/idioma.js"></script>
   <script src="./js/microfono.js"></script>
   <script src="./js/medidor.js"></script>
   <script src="./js/diagramas.js"></script>
